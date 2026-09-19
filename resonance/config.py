@@ -14,6 +14,8 @@ OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 IFIND_TOKEN_URL = "https://quantapi.51ifind.com/api/v1/get_access_token"
 IFIND_HISTORY_URL = "https://quantapi.51ifind.com/api/v1/history_data"
 IFIND_DATAPOOL_URL = "https://quantapi.51ifind.com/api/v1/data_pool"
+IFIND_BASIC_URL = "https://quantapi.51ifind.com/api/v1/basic_data_service"
+IFIND_HF_URL = "https://ft.10jqka.com.cn/api/v1/high_frequency"
 
 # access_token 扁平缓存（与项目3共用，避免重复刷新）
 IFIND_TOKEN_FILE = Path("/home/zxh/qlib_data/.ifind_token")
@@ -52,8 +54,13 @@ BROAD_INDEX_POOL = {
     "000015.SH": "红利指数",
 }
 
-# 概念指数：同花顺概念板块，代码段 885xxx.TI / 886xxx.TI（目录快照 390/394 个）
-CONCEPT_CODE_PREFIXES = ("885", "886")
+# 概念指数：同花顺概念板块，代码段 885xxx.TI / 886xxx.TI（目录快照 390/394 个）。
+# 枚举候选范围（实测 885 段接近满段、886 段稀疏、887 段不存在；无效代码在
+# basic_data_service 响应中被直接省略，见 ifind.fetch_index_names）
+CONCEPT_CODE_RANGE = tuple(range(885001, 887000))
+
+# 数据采集起始（回测 2025-01-01 前留 ~3 个月 lookback，覆盖 20/60 日信号窗口预热）
+COLLECT_START = "2024-10-01"
 
 # --- 共振与回测参数（GPT 会话已确认的口径） ---
 SIGNAL_WINDOW = 20          # 信号观察窗口：20 日相关度
