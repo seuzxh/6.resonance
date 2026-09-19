@@ -36,6 +36,13 @@
       回撤 +5.7pp（64% 止损在上午 9–10 点触发=隔夜跳空早离场）。10/10 网格点
       过预注册判据。见 [outputs/minute_exec/report.md](outputs/minute_exec/report.md)
       与 [docs/minute-exec-design.md](docs/minute-exec-design.md)。
+- [x] 2026-09-19 信号窗口变更验证（用户指令 w∈{3,5}）：**缩短信号窗损大于益**——
+      w=3 证伪（验证窗中位 −12.6%，全窗超额 −20pp 跑输全A）；w=5 收益让渡近半
+      （全窗 +53% vs +152%）换更浅回撤；盘中止损增量与信号窗强相关（网格通过率
+      w=20 10/10 > w=5 2/10 > w=3 1/10）。**最优组合仍为 w=20 + B4% 盘中止损**
+      （帕累托支配所有短窗配置）；次优 w=5+B4%（+20.7%/−19.5%）。短窗 B 结果
+      需 1,209 对补采去覆盖混杂后才是最终口径。见
+      [outputs/minute_exec/report_w35.md](outputs/minute_exec/report_w35.md)。
 - [ ] 探索方向①：扩展权重/风格指数池；②动态调仓区间；③止损（执行层 4% 版已
       验证，可再试基准自适应 x）；④空仓/国债避险（任何新结论须过网格相位
       稳健性检验，如多相位取中位数）。
@@ -54,6 +61,7 @@ conda run -n resonance python work/validate_data.py # 数据验证（schema/网�
 conda run -n resonance python work/backtest_dynamic.py  # 基线复现（变体矩阵）
 conda run -n resonance python work/backtest_minute.py   # 分钟共振验证（5 相位×三变体）
 conda run -n resonance python work/backtest_exec.py     # 执行层验证（时点网格+止损网格×双粒度）
+conda run -n resonance python work/backtest_exec_w35.py  # 信号窗 w∈{20,5,3} 重验证
 ```
 
 凭证不进仓库：refresh_token 从 `/home/zxh/qlib_data/scripts/` 全局源或环境变量
