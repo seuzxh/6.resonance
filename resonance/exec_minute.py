@@ -158,19 +158,26 @@ def run_with_intraday_stop(
     topk: int,
     stop_pct: float,
     mode: str = "minute",
+    gate_fn=None,
 ) -> dict:
     """候选 B：全路径重模拟 + 追踪止损（mode='minute' 5min 粒度 / 'close' 收盘对照）。
 
     调仓检查逻辑逐条镜像 resonance.backtest.RotationBacktester.run（Top5 缓冲 /
     corr1>0 门槛 / 检查网格），入场价 = 上一交易日收盘（exec_lag=1 基线口径），
     仅"当日计收益"替换为逐 mark 的止损路径。
+
+    gate_fn(asof)→bool（缺省自动取 rank_fn.gate_fn 属性）：False = 不开新仓
+    ——已有持仓仍在 Top5 内则续持，跌出 Top5 或空仓时保持/转为空仓（"不开仓"
+    语义，不强制平仓续持中的仓位）。rebalance_days=1 即逐日滚动检查。
     """
     assert mode in ("minute", "close")
     dates = list(close_df.index)
+    if gate_fn is None:
+        gate_fn = getattr(rank_fn, "gate_fn", None)
 
     nav, holding, anchor, peak, holding_until = 1.0, None, None, None, -1
     out_curve, records, stop_events = {}, [], []
-    stats = {"stops": 0, "flat_days": 0, "degraded_days": 0, "mark_days": 0}
+    stats = {"stops": 0, "flat_days": 0, "degraded_days": 0, "mark_days": 0, "gate_blocked": 0}
     degraded_log: list[tuple[str, pd.Timestamp]] = []
 
     for i, date in enumerate(dates):
@@ -183,7 +190,12 @@ def run_with_intraday_stop(
                 top_set = set(ranking["concept"].head(topk))
                 first = ranking["concept"].iloc[0]
                 corr1 = float(ranking["corr"].iloc[0])
-                new_holding = holding if holding in top_set else (first if corr1 > 0 else None)
+                if gate_fn is not None and not bool(gate_fn(dates[i - 1])):
+                    gate_ok = False
+                    stats["gate_blocked"] += 1
+                    new_holding = holding if holding in top_set else None
+                else:
+                    new_holding = holding if holding in top_set else (first if corr1 > 0 else None)
             if new_holding != holding:
                 records.append({"date": date, "action": "switch" if new_holding else "clear",
                                 "from": holding, "to": new_holding})

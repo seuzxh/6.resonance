@@ -27,22 +27,27 @@ from resonance.exec_minute import (  # noqa: E402
     run_with_intraday_stop,
 )
 from resonance.ifind import fetch_minute_close  # noqa: E402
+from resonance.dynamic import make_up_short_rank_fn  # noqa: E402
 from work.backtest_exec import PHASE_STARTS, load_all  # noqa: E402
-from work.backtest_upres import cached_rank_variant  # noqa: E402
+from work.backtest_uc import cached as cached_rank
 
 OUT_FILE = config.CACHE_DIR / "minute5_bars.parquet"
 PARTIAL_FILE = config.CACHE_DIR / "minute5_exec_topup.partial.parquet"
-VARIANTS_TO_SCAN = ("up", "down")  # full/w∈{5,3} 已在先前补采中覆盖
-STOP_GRID_TO_SCAN = (0.04, 0.06, 0.08, 0.10, 0.12)
+# full/up/down/w∈{5,3} 已在先前补采中覆盖；本轮扫描用户组合口径 R1/R2/R3 × w∈{4,5}
+UC_SCAN = [("R1", 4, 5, False), ("R2", 4, 5, True), ("R3", 4, 1, True),
+           ("R1", 5, 5, False), ("R2", 5, 5, True), ("R3", 5, 1, True)]
+STOP_GRID_TO_SCAN = (0.04,)
 
 
 def find_missing(close, minute_wide, concepts) -> tuple[set, set]:
     prices = MinutePrices(close, close.copy(), minute_wide)
     miss = set()
-    for v in VARIANTS_TO_SCAN:
-        rank_fn = cached_rank_variant(close, concepts, v, {})
+    for rung, w, rebal, gate in UC_SCAN:
+        rank_fn = cached_rank(make_up_short_rank_fn(close, concepts, window=w, min_days=2,
+                                                    gate_days=3, use_gate=gate, exec_lag=1,
+                                                    stats={}))
         for start in PHASE_STARTS:
-            bt = RotationBacktester(close[concepts].loc[start:], rank_fn, rebalance_days=5)
+            bt = RotationBacktester(close[concepts].loc[start:], rank_fn, rebalance_days=rebal)
             out = bt.run()
             days = list(out["nav_curve"].index)
             _, trade_of = _reconstruct_holding(days, out["switches"])
@@ -54,7 +59,7 @@ def find_missing(close, minute_wide, concepts) -> tuple[set, set]:
                             miss.add((c, d))
             for x in STOP_GRID_TO_SCAN:
                 b = run_with_intraday_stop(close[concepts].loc[start:], prices, rank_fn,
-                                           rebalance_days=5, topk=5, stop_pct=x, mode="minute")
+                                           rebalance_days=rebal, topk=5, stop_pct=x, mode="minute")
                 miss.update(b["degraded_log"])
     fetchable = {(c, d) for c, d in miss if c in set(minute_wide.columns)}
     no_hf = {c for c, _ in miss} - {c for c, _ in fetchable}

@@ -49,7 +49,14 @@
       20 日 Pearson + B4% 盘中止损（+28.9%/−17.3%）**；up 裸栈
       （+17.2%/−31.4%）留作无止损场景备选。判定脚本对照 bug 已修正并记录。
       见 [outputs/minute_exec/report_upres.md](outputs/minute_exec/report_upres.md)。
-- [ ] 探索方向①：扩展权重/风格指数池；②动态调仓区间；③止损（执行层 4% 版已
+- [x] 2026-09-20 用户组合口径验证（短窗上涨共振 4/5 日 + 3 日动量闸门 + 逐日滚动，
+      消融阶梯归因）：**完整组合不替换生产配置**（B4% 栈让渡收益 11~20pp，止损与
+      快信号第三次功能挤占）；**但 R3_w5 裸栈（+20.1%/−19.9%/0.82，5/5 相位，
+      无分钟依赖）作为纯日线场景备选入库**。组件归因：短窗up共振 +3.6pp、闸门
+      −6.7pp、滚动 +10.2pp（换手 6 倍）；逐日滚动消解网格相位敏感性（协议检验力
+      相应下降）。见 [outputs/minute_exec/report_uc.md](outputs/minute_exec/report_uc.md)。
+- [ ] 探索方向①：扩展权重/风格指数池；②动态调仓区间（日频滚动已验，见 UC R3）；
+      ③止损（执行层 4% 版已
       验证，可再试基准自适应 x）；④空仓/国债避险（任何新结论须过网格相位
       稳健性检验，如多相位取中位数）。
 
@@ -69,6 +76,7 @@ conda run -n resonance python work/backtest_minute.py   # 分钟共振验证（5
 conda run -n resonance python work/backtest_exec.py     # 执行层验证（时点网格+止损网格×双粒度）
 conda run -n resonance python work/backtest_exec_w35.py  # 信号窗 w∈{20,5,3} 重验证
 conda run -n resonance python work/backtest_upres.py    # 上涨共振 vs 全样本口径验证
+conda run -n resonance python work/backtest_uc.py      # 用户组合口径（短窗up+闸门+滚动）消融
 ```
 
 凭证不进仓库：refresh_token 从 `/home/zxh/qlib_data/scripts/` 全局源或环境变量
