@@ -58,19 +58,24 @@ def make_dynamic_rank_fn(
     cold_start: bool = False,
     backtest_start: str | None = None,
     exec_lag: int = 0,
+    ranking_fn=None,
 ):
     """构造 RotationBacktester 用的 rank_fn(date)。
 
     close_all：宽基+概念收盘宽表（同一日历索引，含 lookback）；
     exec_lag：见模块 docstring；引擎传入的 asof 为 d_{i-1}，lag>0 时信号日
     再回移 lag 个交易日（不依赖引擎索引，直接在 close_all 日历上回移）；
-    cold_start=True 时，信号日早于 backtest_start + window 个交易日的榜为空。
+    cold_start=True 时，信号日早于 backtest_start + window 个交易日的榜为空；
+    ranking_fn：榜单指标注入（默认 resonance_rankings；上涨/下跌共振变体传
+    metrics.updown_resonance_rankings 的闭包），签名兼容
+    (returns, index_code, concepts, window, asof=...)。
     """
     if broad_codes is None:
         broad_codes = list(config.BROAD_INDEX_POOL)
     close_broad = close_all[broad_codes]
     returns = close_all.pct_change()
     cal = close_all.index
+    _rank = ranking_fn if ranking_fn is not None else resonance_rankings
 
     cutoff: pd.Timestamp | None = None
     if cold_start:
@@ -88,7 +93,7 @@ def make_dynamic_rank_fn(
             return pd.DataFrame(columns=["concept", "corr"])
         if leader is None:
             return pd.DataFrame(columns=["concept", "corr"])
-        return resonance_rankings(returns, leader, concepts, window, asof=sig_day)
+        return _rank(returns, leader, concepts, window, asof=sig_day)
 
     rank_fn.leader_history: dict[str, str | None] = {}
     return rank_fn

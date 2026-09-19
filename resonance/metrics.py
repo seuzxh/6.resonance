@@ -79,3 +79,55 @@ def resonance_rankings(
             rows.append({"concept": c, "corr": float(val)})
     out = pd.DataFrame(rows, columns=["concept", "corr"])
     return out.sort_values("corr", ascending=False).reset_index(drop=True)
+
+
+def updown_resonance_rankings(
+    returns: pd.DataFrame,
+    index_code: str,
+    concepts: list[str],
+    window: int,
+    side: str = "up",
+    min_days: int = 8,
+    asof: pd.Timestamp | None = None,
+    stats: dict | None = None,
+) -> pd.DataFrame:
+    """上涨/下跌共振榜单：仅用窗口内领先指数上涨日（side='up'，收益>0）
+    或下跌日（side='down'，收益<0）计算概念-指数 Pearson 相关。
+
+    做多轮动先验：跟随领导指数上攻的同涨性才是可用共振，同跌只是风险暴露。
+    口径约束：概念须窗口内收益全非 NaN（对齐 rolling min_periods=window 的
+    排除规则）；条件样本 < min_days 时该信号日整体回退全窗口相关（stats 计数）。
+    返回 DataFrame[concept, corr] 降序，与 resonance_rankings 同构。
+    """
+    assert side in ("up", "down")
+    df = returns if asof is None else returns.loc[:asof]
+    rets = df.iloc[-window:]
+    y_all = rets[index_code] if index_code in rets.columns else None
+    cols = [c for c in concepts if c in rets.columns]
+    if y_all is None or len(rets) < window or y_all.isna().any():
+        if stats is not None:
+            stats["no_leader"] = stats.get("no_leader", 0) + 1
+        return pd.DataFrame(columns=["concept", "corr"])
+    eligible = rets[cols].notna().all(axis=0)
+    cols = [c for c in cols if eligible[c]]
+    if not cols:
+        return pd.DataFrame(columns=["concept", "corr"])
+
+    mask = (y_all > 0) if side == "up" else (y_all < 0)
+    if int(mask.sum()) < min_days:
+        if stats is not None:
+            stats["fallback"] = stats.get("fallback", 0) + 1
+        mask = pd.Series(True, index=rets.index)
+    elif stats is not None:
+        stats.setdefault("n_cond", []).append(int(mask.sum()))
+
+    X = rets.loc[mask, cols].to_numpy(dtype=float)
+    y = y_all[mask].to_numpy(dtype=float)
+    Xc = X - X.mean(axis=0)
+    yc = y - y.mean()
+    num = Xc.T @ yc
+    den = np.sqrt((Xc ** 2).sum(axis=0) * (yc ** 2).sum())
+    with np.errstate(divide="ignore", invalid="ignore"):
+        corr = np.where(den > 0, num / den, np.nan)
+    out = pd.DataFrame({"concept": cols, "corr": corr}).dropna()
+    return out.sort_values("corr", ascending=False).reset_index(drop=True)

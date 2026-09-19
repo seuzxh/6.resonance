@@ -43,6 +43,12 @@
       （帕累托支配所有短窗配置）；次优 w=5+B4%（+20.7%/−19.5%）。短窗 B 结果
       需 1,209 对补采去覆盖混杂后才是最终口径。见
       [outputs/minute_exec/report_w35.md](outputs/minute_exec/report_w35.md)。
+- [x] 2026-09-20 上涨共振验证（用户指令，up=上涨日条件相关，down 对照）：
+      **不采纳**——裸栈 +4.2pp 小改善真实但被止损层吸收（生产栈 B4% 上
+      −2.3~−4.8pp，功能重叠）；全窗 up +109% vs full +152%。**维持全样本
+      20 日 Pearson + B4% 盘中止损（+28.9%/−17.3%）**；up 裸栈
+      （+17.2%/−31.4%）留作无止损场景备选。判定脚本对照 bug 已修正并记录。
+      见 [outputs/minute_exec/report_upres.md](outputs/minute_exec/report_upres.md)。
 - [ ] 探索方向①：扩展权重/风格指数池；②动态调仓区间；③止损（执行层 4% 版已
       验证，可再试基准自适应 x）；④空仓/国债避险（任何新结论须过网格相位
       稳健性检验，如多相位取中位数）。
@@ -62,6 +68,7 @@ conda run -n resonance python work/backtest_dynamic.py  # 基线复现（变体�
 conda run -n resonance python work/backtest_minute.py   # 分钟共振验证（5 相位×三变体）
 conda run -n resonance python work/backtest_exec.py     # 执行层验证（时点网格+止损网格×双粒度）
 conda run -n resonance python work/backtest_exec_w35.py  # 信号窗 w∈{20,5,3} 重验证
+conda run -n resonance python work/backtest_upres.py    # 上涨共振 vs 全样本口径验证
 ```
 
 凭证不进仓库：refresh_token 从 `/home/zxh/qlib_data/scripts/` 全局源或环境变量

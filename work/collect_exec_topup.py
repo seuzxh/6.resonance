@@ -28,19 +28,19 @@ from resonance.exec_minute import (  # noqa: E402
 )
 from resonance.ifind import fetch_minute_close  # noqa: E402
 from work.backtest_exec import PHASE_STARTS, load_all  # noqa: E402
-from work.backtest_exec_w35 import cached_rank_w  # noqa: E402
+from work.backtest_upres import cached_rank_variant  # noqa: E402
 
 OUT_FILE = config.CACHE_DIR / "minute5_bars.parquet"
 PARTIAL_FILE = config.CACHE_DIR / "minute5_exec_topup.partial.parquet"
-WINDOWS_TO_SCAN = (5, 3)          # 20 已在第一轮补采中覆盖
+VARIANTS_TO_SCAN = ("up", "down")  # full/w∈{5,3} 已在先前补采中覆盖
 STOP_GRID_TO_SCAN = (0.04, 0.06, 0.08, 0.10, 0.12)
 
 
 def find_missing(close, minute_wide, concepts) -> tuple[set, set]:
     prices = MinutePrices(close, close.copy(), minute_wide)
     miss = set()
-    for w in WINDOWS_TO_SCAN:
-        rank_fn = cached_rank_w(close, concepts, w)
+    for v in VARIANTS_TO_SCAN:
+        rank_fn = cached_rank_variant(close, concepts, v, {})
         for start in PHASE_STARTS:
             bt = RotationBacktester(close[concepts].loc[start:], rank_fn, rebalance_days=5)
             out = bt.run()
