@@ -1,0 +1,10 @@
+# resonance env（Python 3.12）
+# 注意：vectorbt 1.1.0 要求 pandas>=3.0.3；但其内置主题与 plotly>=7 不兼容
+# （scattermapbox 改名 scattermap），故 plotly 必须 <6。
+pandas>=3.0.3,<4
+numpy>=1.26
+scipy>=1.11
+requests>=2.31
+plotly>=5,<6
+vectorbt==1.1.0
+pytest>=7.4
