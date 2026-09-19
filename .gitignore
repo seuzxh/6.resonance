@@ -25,3 +25,4 @@ outputs/**/*.json
 logs/
 .ipynb_checkpoints/
 /tmp/
+.worktrees/
