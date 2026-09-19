@@ -55,23 +55,42 @@
       无分钟依赖）作为纯日线场景备选入库**。组件归因：短窗up共振 +3.6pp、闸门
       −6.7pp、滚动 +10.2pp（换手 6 倍）；逐日滚动消解网格相位敏感性（协议检验力
       相应下降）。见 [outputs/minute_exec/report_uc.md](outputs/minute_exec/report_uc.md)。
+- [x] 2026-09-20 **V3 最佳方案实现 + 十轮预注册优化**（用户指令"根据最佳方案
+      进行项目开发"）：规格 [docs/v3-best-plan.md](docs/v3-best-plan.md)，
+      引擎 `resonance/v3.py`（上涨共振 EW + 动态半衰期 + Top3 缓冲 + 3 日最短
+      持有 + 5% 止损 + 冷静期 + 双边成本；47 项测试）。锚点对照：0bp
+      +61.22%/−20.47% vs 文档 +299.11%/−19.16%（残差=目录 529 vs 390 + 会话
+      样本内最优；建仓错日一致性精确复现；**相位敏感性远低于 dyn5**：
+      5 相位 +44~+61%）。十轮判据预注册于
+      [docs/v3-optimization-design.md](docs/v3-optimization-design.md)，
+      R1–R8 维持规格值（R7 P5 "+27pp/5/5" 被孤峰形态约束正确拦下，终栈复核
+      跌回 −46pp 证伪），**R9 采纳防御层**（全A 10 日回撤>4% 禁开新仓+检查日
+      退出，复用半衰期 regime 边界，零新自由参数）。**冻结终栈（10bp 5 相位
+      中位）：+74.38% / −13.24% / 夏普 1.30，30bp 仍 +34.92%，择优分数
+      +0.523 vs 规格栈 −0.073**。警示：全部样本内、防御层路径收敛=1 条路径
+      检验力、阈值面 4→5% 锯齿在案。见
+      [outputs/v3/final_report.md](outputs/v3/final_report.md) 与
+      [outputs/v3/rounds/](outputs/v3/rounds/)。
 - [ ] 探索方向①：扩展权重/风格指数池；②动态调仓区间（日频滚动已验，见 UC R3）；
-      ③止损（执行层 4% 版已
-      验证，可再试基准自适应 x）；④空仓/国债避险（任何新结论须过网格相位
-      稳健性检验，如多相位取中位数）。
+      ③止损（执行层 4% 版已验证，可再试基准自适应 x；V3 固定止损下分钟粒度
+      已证伪）；④空仓/国债避险（**V3 防御层已落地 strong4%**；2% 档过度防御
+      已证伪）；⑤V3+防御栈上的共振窗 W12–15 单调改善（冻结轮事后发现，
+      需独立预注册验证）；⑥冻结参数滚动样本外验证（V3 §12 第 5 条）。
 
 ## 环境
 
 只使用 conda 环境 `resonance`（Python 3.12，vectorbt 1.1.0）：
 
 ```bash
-conda run -n resonance python -m pytest -q          # 离线测试（18 个）
+conda run -n resonance python -m pytest -q          # 离线测试（47 个）
 conda run -n resonance python work/probe.py         # iFinD 冒烟（需网络+凭证）
 conda run -n resonance python work/collect.py       # 日线采集（目录+日线，断点续传）
 conda run -n resonance python work/collect_minute.py    # 60min 分钟采集（全窗）
 conda run -n resonance python work/collect_minute5.py   # 5min 分钟采集（需求矩阵裁剪）
 conda run -n resonance python work/validate_data.py # 数据验证（schema/网格/跨源对照）
 conda run -n resonance python work/backtest_dynamic.py  # 基线复现（变体矩阵）
+conda run -n resonance python work/backtest_v3.py       # V3 规格栈锚点对照 + 相位表
+conda run -n resonance python work/opt_v3.py --round N  # V3 十轮优化（N=1..10；终栈兜底 FROZEN_FINAL）
 conda run -n resonance python work/backtest_minute.py   # 分钟共振验证（5 相位×三变体）
 conda run -n resonance python work/backtest_exec.py     # 执行层验证（时点网格+止损网格×双粒度）
 conda run -n resonance python work/backtest_exec_w35.py  # 信号窗 w∈{20,5,3} 重验证
@@ -85,12 +104,12 @@ conda run -n resonance python work/backtest_uc.py      # 用户组合口径（�
 ## 目录
 
 ```
-resonance/     Python 包：config / ifind 客户端 / metrics 共振指标 / backtest 轮动引擎
-work/          运维脚本（probe 冒烟、采集、看板）
+resonance/     Python 包：config / ifind 客户端 / metrics 共振指标 / backtest 轮动引擎 / v3 上涨共振引擎
+work/          运维脚本（probe 冒烟、采集、回测、优化运行器）
 tests/         离线单元测试（全部 mock）
 data/          本地缓存（gitignored）
-outputs/       交付物（ifind_validation / index_backtest_framework）
-docs/          GPT 会话纪要、方案文档
+outputs/       交付物（v3 / minute_exec / index_backtest_framework / minute_resonance）
+docs/          GPT 会话纪要、方案文档（V3 规格/优化协议/执行层设计）
 ```
 
 ## 硬约束
