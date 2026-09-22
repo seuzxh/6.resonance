@@ -356,6 +356,14 @@ class V3Backtester:
         self.rets = close_all.pct_change()
         self.broad = [c for c in (broad_codes or list(config.BROAD_INDEX_POOL))
                       if c in close_all.columns]
+        missing = set(broad_codes or config.BROAD_INDEX_POOL) - set(self.broad)
+        if missing:
+            import warnings
+            warnings.warn(
+                f"指数池 {sorted(missing)} 无日线数据，按可用子集 {len(self.broad)} 池运行"
+                f"（883417.TI 待配额恢复补采；其余缺失为异常，请检查数据）",
+                stacklevel=2,
+            )
         self.allA = allA_code
         self.p = params or V3Params()
         self.mp = minute_prices
