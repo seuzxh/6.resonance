@@ -202,3 +202,93 @@ def parse_history_data(resp: dict, indicators: list[str]) -> pd.DataFrame:
     df = pd.concat(frames, ignore_index=True)
     df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
     return df
+
+
+# --- basic_data_service：指数代码 → 简称（概念目录快照） ---
+# 目录段边界实测（2026-09-19）：885010~885400 均无效、885500+ 有效（通用航空）、
+# 886001 有效（高压快充）、886400+ 无效、887 段不存在。低 885xxx 无效。
+NAME_PROBE_SENTINEL = "885999.TI"  # 已知有效（汽车热管理），用作全无效批次的哨兵
+
+
+# --- high_frequency：60min 指数K线（2026-09-19 实测口径） ---
+# ① 端点 ft.10jqka.com.cn（与 history_quotation 共享月度配额池）；② 覆盖：宽基 11/13
+# （缺 700050/932000）、概念 389/529——无分钟数据的代码在响应中返回 0 bar；
+# ③ Fill="Forward" 对无数据代码返回字面字符串 "Forward"（伪数据，禁用）；
+# ④ 历史仅滚动 ~1 年（更早 errorcode=-4309）；⑤ Interval=60 → 每日 4 bar
+# （10:30/11:30/14:00/15:00，bar 结束时刻）；⑥ 多代码可批、跨日区间可批，
+# 响应 MaxPoints≈50000（20 codes × 一年 33k 点安全）。
+MINUTE_CODES_PER_REQUEST = 20
+
+
+def fetch_minute_close(
+    codes: list[str],
+    start_date: str,
+    end_date: str,
+    interval: str = "60",
+) -> pd.DataFrame:
+    """high_frequency 60min 收盘价 → 长表 DF[symbol, datetime, close]。
+
+    只取 close（配额省 4/5）；datetime 为 bar 结束时刻 "YYYY-MM-DD HH:MM"。
+    无分钟数据的代码静默缺行（调用方按 coverage 降级）。
+    """
+    frames: list[pd.DataFrame] = []
+    for i in range(0, len(codes), MINUTE_CODES_PER_REQUEST):
+        chunk = codes[i : i + MINUTE_CODES_PER_REQUEST]
+        payload = {
+            "codes": ",".join(chunk),
+            "indicators": "close",
+            "starttime": f"{start_date} 09:30:00",
+            "endtime": f"{end_date} 15:01:00",
+            "functionpara": {"Interval": interval, "CPS": "-no", "Fill": "Original"},
+        }
+        resp = _post(config.IFIND_HF_URL, payload, timeout=300)
+        tables = resp.get("tables") or []
+        rows = []
+        for t in tables:
+            code = t.get("thscode")
+            times = t.get("time") or []
+            closes = (t.get("table") or {}).get("close") or []
+            for ts, c in zip(times, closes):
+                if c is not None and str(c) != "":
+                    rows.append((code, ts, float(c)))
+        if rows:
+            frames.append(pd.DataFrame(rows, columns=["symbol", "datetime", "close"]))
+        if len(codes) > MINUTE_CODES_PER_REQUEST:
+            time.sleep(0.4)
+    if not frames:
+        return pd.DataFrame(columns=["symbol", "datetime", "close"])
+    df = pd.concat(frames, ignore_index=True)
+    df["datetime"] = pd.to_datetime(df["datetime"])
+    return df.sort_values(["symbol", "datetime"]).reset_index(drop=True)
+
+
+def fetch_index_names(codes: list[str], chunk_size: int = 200) -> dict[str, str]:
+    """批量查询指数简称（``ths_index_short_name_index``）。返回 {code: name}。
+
+    无效代码在响应 ``tables`` 中被直接省略；**全无效批次**返回 errorcode=-4210
+    （实测 885010~885400 单批全无效触发）。为区分"全无效"与"真参数错"，
+    每批混入哨兵代码 NAME_PROBE_SENTINEL（已知有效）：哨兵在场时 -4210 只能是
+    参数错误 → 正常抛出；全无效批次则 ec=0 且仅含哨兵。
+    """
+    out: dict[str, str] = {}
+    sentinel = NAME_PROBE_SENTINEL
+    for i in range(0, len(codes), chunk_size):
+        chunk = [c for c in codes[i : i + chunk_size] if c != sentinel]
+        resp = _post(
+            config.IFIND_BASIC_URL,
+            {
+                "codes": ",".join([sentinel] + chunk),
+                "indipara": [{"indicator": "ths_index_short_name_index", "indiparams": []}],
+            },
+        )
+        tables = resp.get("tables") or []
+        for t in tables:
+            code = t.get("thscode")
+            tbl = t.get("table") or {}
+            names = tbl.get("ths_index_short_name_index") or []
+            if code and names and names[0]:
+                out[code] = str(names[0])
+        if len(codes) > chunk_size:
+            time.sleep(0.3)
+    out.pop(sentinel, None)  # 哨兵不属于目录
+    return out
