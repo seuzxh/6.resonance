@@ -22,8 +22,8 @@ import pandas as pd  # noqa: E402
 from resonance import config  # noqa: E402
 from resonance.ifind import fetch_history_data, fetch_minute_close  # noqa: E402
 
-NEW_DAILY = ["000001.SH", "399001.SZ"]        # 上证指数 / 深证成指
-NEW_MINUTE = ["000001.SH", "399001.SZ"]
+NEW_DAILY = ["000001.SH", "399001.SZ", "883417.TI"]  # 上证指数 / 深证成指 / 大盘股
+NEW_MINUTE = ["000001.SH", "883417.TI"]     # 池内缺 5min 的指数（399001 已出池）
 DAILY_START, DAILY_END = "2024-10-08", "2026-09-18"
 M5_START, M5_END = "2025-09-22", "2026-09-18"
 
@@ -31,26 +31,33 @@ M5_START, M5_END = "2025-09-22", "2026-09-18"
 def month_runs(start: str, end: str) -> list[tuple[str, str]]:
     idx = pd.date_range(start, end, freq="MS")
     runs = []
+    first_end = (idx[0] - pd.Timedelta(days=1)).strftime("%Y-%m-%d") if len(idx) else end
+    if first_end >= start:
+        runs.append((start, min(first_end, end)))          # 首月残段
     for i, m in enumerate(idx):
         s = m.strftime("%Y-%m-%d")
         e = (idx[i + 1] - pd.Timedelta(days=1)).strftime("%Y-%m-%d") if i + 1 < len(idx) else end
         runs.append((max(s, start), min(e, end)))
-    if not runs:
-        runs = [(start, end)]
     return runs
 
 
 def topup_daily() -> None:
     f = config.CACHE_DIR / "daily_bars.parquet"
     bars = pd.read_parquet(f)
-    have = set(bars["symbol"])
-    todo = [c for c in NEW_DAILY if c not in have]
-    if not todo:
-        print(f"[daily] 全部已存在：{NEW_DAILY}")
+    runs_of: dict[str, list[tuple[str, str]]] = {}
+    for c in NEW_DAILY:
+        sub = bars[bars["symbol"] == c]["date"]
+        if sub.empty:
+            runs_of[c] = month_runs(DAILY_START, DAILY_END)
+        elif str(sub.min()) > DAILY_START:                 # 前段残缺 → 补首日起至现存最早日前
+            gap_end = (pd.Timestamp(sub.min()) - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+            runs_of[c] = [(DAILY_START, gap_end)]
+    if not runs_of:
+        print(f"[daily] 全部已存在且覆盖完整：{NEW_DAILY}")
         return
     frames = []
-    for c in todo:
-        for s, e in month_runs(DAILY_START, DAILY_END):
+    for c, cruns in runs_of.items():
+        for s, e in cruns:
             for attempt in range(3):
                 try:
                     got = fetch_history_data([c], s, e)
@@ -82,7 +89,7 @@ def topup_minute5() -> None:
     frames = []
     for c in todo:
         # 按季度分段（48 bar/日 × ~60 日 ≈ 2.9k 点/段，安全低于 MaxPoints）
-        for s, e in [(r[0].strftime("%Y-%m-%d"), r[1].strftime("%Y-%m-%d"))
+        for s, e in [(r.start_time.strftime("%Y-%m-%d"), r.end_time.strftime("%Y-%m-%d"))
                      for r in pd.period_range(M5_START, M5_END, freq="Q")]:
             span_end = min(e, M5_END)
             for attempt in range(3):
