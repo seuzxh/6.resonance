@@ -366,6 +366,9 @@ class _FakeMinute:
     def window(self, code, day, n):
         return self.bars_map.get((pd.Timestamp(day).date(), code), pd.Series(dtype=float))
 
+    def window_span(self, code, end_day, n):
+        return self.window(code, end_day, n)  # 假供给：单日即窗，跨日语义退化
+
 
 def _bars(vals, day="2025-01-14"):
     idx = pd.date_range(f"{day} 13:05", periods=len(vals), freq="5min")
@@ -435,3 +438,51 @@ def test_v41_top2_buffer_on_final_ranking():
                       params=p, minute_bars_provider=_FakeMinute(bm))
     out = bt.run(close.index[11])
     assert len(out["trades"]) == 1 and out["trades"].iloc[0]["to"] == "C_GOOD"
+
+
+# ---------------------------------------------- 2026-09-22 优化指令（V4.2） --
+
+def test_hl_source_leader():
+    """hl_source='leader'：半衰期按当日领先指数自身回撤定档（全A 仅对照）。"""
+    from resonance.v3 import V3Signals
+    n = 30
+    # ALLA 恒平（回撤0→h=5）；LDR 前段涨后段崩 ~10%（回撤→h=2）
+    sched = {
+        "LDR": [0.01] * 20 + [-0.02] * 10,
+        "LDR2": [-0.05] * n,   # 远弱于崩塌中的 LDR，保证 LDR 仍为领先指数
+        "ALLA": [0.0] * n,
+        "C_GOOD": [0.012] * n, "C_MID": [0.005] * n,
+        "C_NEWC": [0.005] * n, "C_ALT": [0.005] * n,
+    }
+    close = mk_close(sched, n)
+    sig_allA = V3Signals(close, CONCEPTS, BROAD, "ALLA", V3Params(hl_source="allA"))
+    sig_leader = V3Signals(close, CONCEPTS, BROAD, "ALLA", V3Params(hl_source="leader"))
+    i = n - 1
+    assert sig_allA.has_leader[i] and sig_allA.leader_idx[i] == BROAD.index("LDR")
+    assert sig_allA.hl[i] == 5.0        # 全A 无回撤 → 最稳档
+    assert sig_leader.hl[i] == 2.0      # LDR 深回撤 → 最快档
+
+
+def test_window_span_cross_day():
+    """window_span：跨日拼接取末 N 根；不足 N → 空。"""
+    days = ["2026-01-05", "2026-01-06"]
+
+    def day_idx(d):
+        return pd.DatetimeIndex(
+            list(pd.date_range(f"{d} 09:35", f"{d} 11:30", freq="5min"))
+            + list(pd.date_range(f"{d} 13:05", f"{d} 15:00", freq="5min")))
+
+    wide = pd.concat([
+        pd.DataFrame({"X": [float(v) for v in range(48)],
+                      "Y": [100.0] * 48}, index=day_idx(days[0])),
+        pd.DataFrame({"X": [float(v) for v in range(48, 96)],
+                      "Y": [200.0] * 24 + [None] * 24}, index=day_idx(days[1])),
+    ])
+    prov = MinuteBarProvider(wide)
+    w96 = prov.window_span("X", pd.Timestamp(days[1]), 96)
+    assert len(w96) == 96
+    assert w96.index[0] == wide.index[0] and w96.index[-1] == wide.index[-1]
+    assert prov.window_span("X", pd.Timestamp(days[0]), 96).empty   # 首日不足
+    assert prov.window_span("Y", pd.Timestamp(days[1]), 96).empty   # Y 次日缺半日
+    w48 = prov.window_span("X", pd.Timestamp(days[1]), 48)
+    assert len(w48) == 48 and w48.index[0].date() == pd.Timestamp(days[1]).date()

@@ -38,8 +38,10 @@ OUT_DIR = config.OUTPUTS_DIR / "v4"
 V41_PHASES = ["2025-09-22", "2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26"]
 V41_END = "2026-09-18"
 
-V41_STACK = V3Params(topk=2, daily_top=5)                      # V4.1 规格（无防御层）
-DAILY_CTRL = V3Params(topk=2)                                  # §12 纯日线对照（Top2 同口径）
+# 生产栈 = V4.1 规格 + 2026-09-22 用户优化指令采纳项（outputs/v4/report_v42.md）：
+# topk 2→3（A 轮）+ 动态半衰期基准全A→当日领先指数（B 轮）；跨日分钟窗（C 轮）证伪不采纳。
+V41_STACK = V3Params(topk=3, daily_top=5, hl_source="leader")
+DAILY_CTRL = V3Params(topk=3, hl_source="leader")              # 纯日线对照（同参数族，去分钟层）
 
 ANCHORS = {
     "m_0bp": (1.0894, -0.1946, 2.35), "m_10bp": (0.9037, -0.1994, 2.08),

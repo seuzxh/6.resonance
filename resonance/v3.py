@@ -66,10 +66,16 @@ class V3Params:
     defense_dd: float = 0.0
     defense_strong: bool = True
     # V4.1 分钟重排层（docs/v4-best-plan.md §7）：daily_top > 0 时启用——日线
-    # 上涨共振先选 Top(daily_top)，再按当日最后 minute_bars 根 5min K线的纯
-    # 分钟上涨共振重排（0% 日线 + 100% 分钟）；topk 缓冲作用于最终排名。
+    # 上涨共振先选 Top(daily_top)，再按 5min K线纯分钟上涨共振重排
+    # （0% 日线 + 100% 分钟）；topk 缓冲作用于最终排名。minute_bars 为窗内
+    # 总 bar 数：24=当日最后 2 小时（V4.1 规格）；96=8 小时跨 2 日（用户
+    # 2026-09-22 优化指令，MinuteBarProvider.window_span 跨日取末 N 根）。
     daily_top: int = 0
     minute_bars: int = 24
+    # 动态半衰期的回撤基准（用户 2026-09-22 优化指令）：'allA'=同花顺全A
+    # （V3/V4.1 规格）；'leader'=当日领先指数自身（各宽基预计算回撤序列，
+    # 按日取领先指数的档位）。
+    hl_source: str = "allA"
 
     def with_(self, **kw) -> "V3Params":
         return replace(self, **kw)
@@ -225,19 +231,38 @@ class V3Signals:
                 == p.res_window).to_numpy()
         pos3 = (close_all[self.concepts].pct_change(p.pos_window) > 0).to_numpy()
         self.elig = ok_w & pos3
-        # 全A 动态半衰期（逐日，样本不足按最稳档——与 dynamic_half_life 一致）
+        # 回撤幅度序列工具（hl 与 R9 防御层共用；样本不足按 0=无回撤）
+        def _dd_mag_series(s: pd.Series, window: int) -> np.ndarray:
+            out = np.zeros(len(s))
+            for i in range(window, len(s)):
+                sub = s.iloc[i - window : i + 1]
+                if len(sub) == window + 1 and not sub.isna().any():
+                    out[i] = -float((sub / sub.cummax() - 1.0).min())
+            return out
+
+        def _tier(m: float) -> float:
+            if m <= p.dd_tiers[0]:
+                return float(p.half_lives[0])
+            if m <= p.dd_tiers[1]:
+                return float(p.half_lives[1])
+            return float(p.half_lives[2])
+
+        # 全A 动态半衰期（逐日；与 dynamic_half_life 等价：不足窗=0 回撤→最稳档）
         s_allA = close_all[allA_code]
-        self.hl = np.array([
-            dynamic_half_life(s_allA, i, p.dd_window, p.dd_tiers, p.half_lives)
-            for i in range(n)
-        ], dtype=float)
-        # 全A 回撤幅度序列（R9 防御层用；样本不足按 0=无回撤）
-        self.dd_mag = np.array([
-            (lambda sub: -float((sub / sub.cummax() - 1.0).min())
-             if len(sub) == p.dd_window + 1 and not sub.isna().any() else 0.0)(
-                s_allA.iloc[i - p.dd_window : i + 1])
-            for i in range(n)
-        ], dtype=float)
+        self.dd_mag = _dd_mag_series(s_allA, p.dd_window)
+        if p.hl_source == "leader":
+            # 用户 2026-09-22 指令：按当日领先指数自身的近 dd_window 日回撤定档
+            dd_by_code = {c: _dd_mag_series(close_all[c], p.dd_window)
+                          for c in self.broad}
+            hl = np.empty(n)
+            for i in range(n):
+                if self.has_leader[i]:
+                    hl[i] = _tier(dd_by_code[self.broad[self.leader_idx[i]]][i])
+                else:
+                    hl[i] = _tier(0.0)
+            self.hl = hl
+        else:
+            self.hl = np.array([_tier(m) for m in self.dd_mag], dtype=float)
 
     def ranking(self, pos: int) -> pd.DataFrame:
         p = self.p
@@ -280,18 +305,25 @@ class MinuteBarProvider:
     """5min bar 收盘供给（V4.1 分钟重排层）。
 
     minute_wide：宽表（index=完整 datetime，48 bar/日，bar 结束时刻）。
-    window(code, date, n) → 当日最后 n 根 bar 的收盘 Series；条数不足 n 返回
-    空Series（调用方按降级策略处理）。日切片惰性索引。
+    window(code, day, n) → 当日最后 n 根（V4.1 24bar 规格）；
+    window_span(code, end_day, n) → 截至 end_day 收盘的最近 n 根（跨日，
+    用户 8 小时=96bar 指令；不足 n 返回空 Series，调用方按降级策略处理）。
+    日切片惰性索引。
     """
 
     def __init__(self, minute_wide: pd.DataFrame):
         self.wide = minute_wide
         self._slices: dict[str, pd.DataFrame] | None = None
+        self._day_keys: list[str] | None = None
 
-    def _day(self, day) -> pd.DataFrame | None:
+    def _ensure_slices(self) -> None:
         if self._slices is None:
             idx = self.wide.index
             self._slices = {str(k.date()): g for k, g in self.wide.groupby(idx.normalize())}
+            self._day_keys = sorted(self._slices)
+
+    def _day(self, day) -> pd.DataFrame | None:
+        self._ensure_slices()
         return self._slices.get(str(pd.Timestamp(day).date()))
 
     def window(self, code: str, day, n: int) -> pd.Series:
@@ -300,6 +332,30 @@ class MinuteBarProvider:
             return pd.Series(dtype=float)
         col = sub[code].dropna()
         return col.iloc[-n:] if len(col) >= n else pd.Series(dtype=float)
+
+    def window_span(self, code: str, end_day, n: int) -> pd.Series:
+        """截至 end_day 的最近 n 根 bar（跨日拼接，时间正序返回）。"""
+        import bisect
+
+        self._ensure_slices()
+        end_k = str(pd.Timestamp(end_day).date())
+        j = bisect.bisect_right(self._day_keys, end_k)
+        parts: list[pd.Series] = []
+        have = 0
+        for k in reversed(self._day_keys[:j]):
+            sub = self._slices[k]
+            if code not in sub.columns:
+                continue
+            col = sub[code].dropna()
+            if len(col):
+                parts.append(col)
+                have += len(col)
+                if have >= n:
+                    break
+        if not parts:
+            return pd.Series(dtype=float)
+        s = pd.concat(parts[::-1]) if len(parts) > 1 else parts[0]
+        return s.iloc[-n:] if len(s) >= n else pd.Series(dtype=float)
 
 
 def minute_up_resonance(leader_bars: pd.Series, concept_bars: pd.DataFrame) -> pd.DataFrame:
@@ -378,7 +434,8 @@ class V3Backtester:
         """日线榜 → （V4.1 启用时）分钟重排，含预注册降级策略。
 
         降级策略（docs/v4/report.md §数据残差 预注册）：
-        - 领先指数当日 bar 窗不完整/缺失 → 回退日线 Top(daily_top) 原序；
+        - 领先指数截至当日的 bar 窗（minute_bars 根，可跨日）不完整/缺失 →
+          回退日线 Top(daily_top) 原序；
         - 个别概念 bar 窗不完整 → 该概念退出当日最终排名；
         - 可评分概念 <2 → 回退日线原序。三类事件计数上报。
         """
@@ -389,16 +446,18 @@ class V3Backtester:
         st["minute_layer_days"] = st.get("minute_layer_days", 0) + 1
         top = daily.head(p.daily_top)
         leader = self.broad[self.sig.leader_idx[i]]
-        lb = self.mbp.window(leader, date, p.minute_bars)
+        lb = self.mbp.window_span(leader, date, p.minute_bars)
         if lb.empty:
             st["minute_fallback_leader"] = st.get("minute_fallback_leader", 0) + 1
             return top
-        cols = [c for c in top["concept"] if not self.mbp.window(c, date, p.minute_bars).empty]
+        cols = [c for c in top["concept"]
+                if not self.mbp.window_span(c, date, p.minute_bars).empty]
         st["minute_excluded"] = st.get("minute_excluded", 0) + (len(top) - len(cols))
         if len(cols) < 2:
             st["minute_fallback_sparse"] = st.get("minute_fallback_sparse", 0) + 1
             return top
-        cbars = pd.DataFrame({c: self.mbp.window(c, date, p.minute_bars) for c in cols})
+        cbars = pd.DataFrame({c: self.mbp.window_span(c, date, p.minute_bars)
+                              for c in cols})
         out = minute_up_resonance(lb, cbars)
         if out.empty or len(out) < 1:
             st["minute_fallback_sparse"] = st.get("minute_fallback_sparse", 0) + 1
