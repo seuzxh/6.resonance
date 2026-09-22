@@ -65,6 +65,11 @@ class V3Params:
     # 现金（与闸门失败同构），False 仅禁止空仓入场。0 = 关闭。
     defense_dd: float = 0.0
     defense_strong: bool = True
+    # V4.1 分钟重排层（docs/v4-best-plan.md §7）：daily_top > 0 时启用——日线
+    # 上涨共振先选 Top(daily_top)，再按当日最后 minute_bars 根 5min K线的纯
+    # 分钟上涨共振重排（0% 日线 + 100% 分钟）；topk 缓冲作用于最终排名。
+    daily_top: int = 0
+    minute_bars: int = 24
 
     def with_(self, **kw) -> "V3Params":
         return replace(self, **kw)
@@ -271,6 +276,65 @@ def up_resonance_scores_np(y: np.ndarray, X: np.ndarray, half_life: float) -> pd
 
 # ---------------------------------------------------------------- 引擎 --
 
+class MinuteBarProvider:
+    """5min bar 收盘供给（V4.1 分钟重排层）。
+
+    minute_wide：宽表（index=完整 datetime，48 bar/日，bar 结束时刻）。
+    window(code, date, n) → 当日最后 n 根 bar 的收盘 Series；条数不足 n 返回
+    空Series（调用方按降级策略处理）。日切片惰性索引。
+    """
+
+    def __init__(self, minute_wide: pd.DataFrame):
+        self.wide = minute_wide
+        self._slices: dict[str, pd.DataFrame] | None = None
+
+    def _day(self, day) -> pd.DataFrame | None:
+        if self._slices is None:
+            idx = self.wide.index
+            self._slices = {str(k.date()): g for k, g in self.wide.groupby(idx.normalize())}
+        return self._slices.get(str(pd.Timestamp(day).date()))
+
+    def window(self, code: str, day, n: int) -> pd.Series:
+        sub = self._day(day)
+        if sub is None or code not in sub.columns:
+            return pd.Series(dtype=float)
+        col = sub[code].dropna()
+        return col.iloc[-n:] if len(col) >= n else pd.Series(dtype=float)
+
+
+def minute_up_resonance(leader_bars: pd.Series, concept_bars: pd.DataFrame) -> pd.DataFrame:
+    """V4.1 §7.2 分钟上涨共振（无 EW 权重）：
+
+    同涨比例 = 共同上涨 bar 数 / 领先上涨 bar 数（仅领先指数上涨的 bar 计入）
+    捕获率   = Σmax(概念bar收益,0) / Σmax(领先bar收益,0)
+    分数     = 同涨比例 × sqrt(clip(捕获率, 0, 2))
+
+    输入为同长度 bar 收盘宽表（列=概念，index=bar 时刻），bar 收益为窗内
+    bar-to-bar 收益（24 bar → 23 收益）。返回 [concept, sync, capture, score]
+    按分数降序（并列按代码升序）；领先无上涨 bar 或捕获率分母为 0 → 空表。
+    """
+    empty = pd.DataFrame(columns=RANK_COLS)
+    rets = pd.concat([leader_bars.rename("__leader__"), concept_bars], axis=1).pct_change().dropna()
+    if len(rets) < 1:
+        return empty
+    y = rets["__leader__"].to_numpy(dtype=float)
+    X = rets.drop(columns=["__leader__"]).to_numpy(dtype=float)
+    if not np.isfinite(y).all() or not np.isfinite(X).all():
+        return empty
+    up = y > 0
+    if not up.any():
+        return empty
+    sync = (X[up] > 0).sum(axis=0) / up.sum()
+    cap_den = float(np.clip(y, 0.0, None).sum())
+    if cap_den <= 0:
+        return empty
+    capture = np.clip(X, 0.0, None).sum(axis=0) / cap_den
+    score = sync * np.sqrt(np.clip(capture, 0.0, 2.0))
+    out = pd.DataFrame({"concept": list(concept_bars.columns), "sync": sync,
+                        "capture": capture, "score": score})
+    return out.sort_values(["score", "concept"], ascending=[False, True]).reset_index(drop=True)
+
+
 class V3Backtester:
     """V3 事件循环回测器（语义见模块 docstring；引擎自含全部规则）。
 
@@ -286,6 +350,7 @@ class V3Backtester:
         allA_code: str = "883957.TI",
         params: V3Params | None = None,
         minute_prices=None,
+        minute_bars_provider=None,
     ):
         self.close = close_all
         self.rets = close_all.pct_change()
@@ -296,7 +361,41 @@ class V3Backtester:
         self.mp = minute_prices
         if self.p.stop_mode == "minute":
             assert self.mp is not None, "stop_mode='minute' 需要 minute_prices"
+        self.mbp = minute_bars_provider
+        if self.p.daily_top > 0:
+            assert self.mbp is not None, "daily_top>0（V4.1 分钟重排）需要 minute_bars_provider"
         self.sig = V3Signals(close_all, concepts, self.broad, allA_code, self.p)
+
+    def _final_ranking(self, i: int, date, st: dict) -> pd.DataFrame:
+        """日线榜 → （V4.1 启用时）分钟重排，含预注册降级策略。
+
+        降级策略（docs/v4/report.md §数据残差 预注册）：
+        - 领先指数当日 bar 窗不完整/缺失 → 回退日线 Top(daily_top) 原序；
+        - 个别概念 bar 窗不完整 → 该概念退出当日最终排名；
+        - 可评分概念 <2 → 回退日线原序。三类事件计数上报。
+        """
+        p = self.p
+        daily = self.sig.ranking(i)
+        if daily.empty or p.daily_top <= 0:
+            return daily
+        st["minute_layer_days"] = st.get("minute_layer_days", 0) + 1
+        top = daily.head(p.daily_top)
+        leader = self.broad[self.sig.leader_idx[i]]
+        lb = self.mbp.window(leader, date, p.minute_bars)
+        if lb.empty:
+            st["minute_fallback_leader"] = st.get("minute_fallback_leader", 0) + 1
+            return top
+        cols = [c for c in top["concept"] if not self.mbp.window(c, date, p.minute_bars).empty]
+        st["minute_excluded"] = st.get("minute_excluded", 0) + (len(top) - len(cols))
+        if len(cols) < 2:
+            st["minute_fallback_sparse"] = st.get("minute_fallback_sparse", 0) + 1
+            return top
+        cbars = pd.DataFrame({c: self.mbp.window(c, date, p.minute_bars) for c in cols})
+        out = minute_up_resonance(lb, cbars)
+        if out.empty or len(out) < 1:
+            st["minute_fallback_sparse"] = st.get("minute_fallback_sparse", 0) + 1
+            return top
+        return out
 
     def run(self, start, end=None) -> dict:
         p = self.p
@@ -442,7 +541,7 @@ class V3Backtester:
                         st["check_days"] += 1
                         record_info(i, date)
                         st["signal_days"] += 1
-                        ranking = self.sig.ranking(i)
+                        ranking = self._final_ranking(i, date, st)
                         if ranking.empty:
                             pending = {"type": "sell", "from": holding,
                                        "reason": "exit", "signal_date": date}
@@ -454,7 +553,7 @@ class V3Backtester:
                 elif i > entry_block_until and not defense_on:
                     record_info(i, date)
                     st["signal_days"] += 1
-                    ranking = self.sig.ranking(i)
+                    ranking = self._final_ranking(i, date, st)
                     if not ranking.empty:
                         pending = {"type": "buy", "code": ranking["concept"].iloc[0]}
                 if p.exec_lag == 0 and pending is not None:

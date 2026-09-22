@@ -317,3 +317,121 @@ def test_yearly_returns():
     yr = yearly_returns(nav)
     assert yr["2025"] == pytest.approx(0.2)
     assert yr["2026"] == pytest.approx(1.4 / 1.2 - 1)
+
+
+# ------------------------------------------------ V4.1 分钟重排层（v4 §7） --
+
+from resonance.v3 import MinuteBarProvider, minute_up_resonance  # noqa: E402
+
+
+def test_minute_up_resonance_hand_computed():
+    idx = pd.date_range("2026-01-05 13:05", periods=4, freq="5min")
+    leader = pd.Series([100, 102, 101, 103], index=idx)          # rets +2%,−1%,+2%
+    concepts = pd.DataFrame({
+        "A": [100, 101, 102, 103],   # 领先上涨bar均涨，捕获低
+        "B": [100, 103, 100, 101],   # 均涨，捕获高
+        "C": [100, 99, 98, 97],      # 领先上涨bar均跌
+    }, index=idx)
+    out = minute_up_resonance(leader, concepts)
+    a, b, c = (out[out["concept"] == k].iloc[0] for k in "ABC")
+    assert a["sync"] == pytest.approx(1.0) and b["sync"] == pytest.approx(1.0)
+    assert c["sync"] == pytest.approx(0.0) and c["score"] == pytest.approx(0.0)
+    # 捕获率 = Σmax(概念bar收益,0)/Σmax(领先bar收益,0)（全窗正部，§7.2）
+    den = 0.02 + 103 / 101 - 1
+    assert a["capture"] == pytest.approx((0.01 + 102 / 101 - 1 + 103 / 102 - 1) / den, abs=1e-6)
+    assert b["capture"] == pytest.approx((0.03 + 0.0 + 0.01) / den, abs=1e-6)
+    assert b["score"] > a["score"]                  # 同同步率，高捕获胜
+    assert list(out["concept"]) == ["B", "A", "C"]
+
+
+def test_minute_bar_provider_window():
+    day = pd.Timestamp("2026-01-05")
+    idx = pd.DatetimeIndex(  # 真实 48 bar 日历：上午 09:35~11:30 + 下午 13:05~15:00
+        list(pd.date_range("2026-01-05 09:35", "2026-01-05 11:30", freq="5min"))
+        + list(pd.date_range("2026-01-05 13:05", "2026-01-05 15:00", freq="5min")))
+    wide = pd.DataFrame({"X": [float(v) for v in range(48)],
+                         "Y": [100.0] * 10 + [None] * 38}, index=idx)  # Y 仅 10 bar
+    prov = MinuteBarProvider(wide)
+    w = prov.window("X", day, 24)
+    assert len(w) == 24 and w.index[-1].hour == 15
+    assert prov.window("Y", day, 24).empty        # 不足 24 根 → 空（降级）
+
+
+class _FakeMinute:
+    """可控分钟供给：bars_map[(day, code)] → Series；未登记返回空。"""
+
+    def __init__(self, bars_map):
+        self.bars_map = bars_map
+
+    def window(self, code, day, n):
+        return self.bars_map.get((pd.Timestamp(day).date(), code), pd.Series(dtype=float))
+
+
+def _bars(vals, day="2025-01-14"):
+    idx = pd.date_range(f"{day} 13:05", periods=len(vals), freq="5min")
+    return pd.Series(vals, index=idx)
+
+
+def test_v41_two_layer_entry_picks_minute_rank1():
+    """日线 #1 ≠ 分钟 #1 时，入场买分钟 #1（V4.1 纯分钟重排）。"""
+    n = 16
+    close = mk_close({"LDR": [0.01] * n, "C_GOOD": [0.012] * n,
+                      "C_MID": [0.005] * n, "C_NEWC": [0.005] * n,
+                      "C_ALT": [0.005] * n}, n)
+    sig_day = close.index[11]                       # 信号日
+    bm = {}
+    d = sig_day.date()
+    bm[(d, "LDR")] = _bars([100, 101, 102, 103])
+    bm[(d, "C_GOOD")] = _bars([100, 100.5, 101, 101.5])   # 分钟弱
+    bm[(d, "C_MID")] = _bars([100, 102, 104, 106])        # 分钟最强
+    bm[(d, "C_NEWC")] = _bars([100, 99, 98, 97])
+    bm[(d, "C_ALT")] = _bars([100, 99, 98, 97])
+    p = V3Params(daily_top=5, topk=2, minute_bars=4)
+    bt = V3Backtester(close, CONCEPTS, broad_codes=BROAD, allA_code="ALLA",
+                      params=p, minute_bars_provider=_FakeMinute(bm))
+    out = bt.run(close.index[11])
+    trades = out["trades"]
+    assert list(trades["type"]) == ["entry"]
+    assert trades.iloc[0]["to"] == "C_MID"          # 分钟第 1，非日线第 1（C_GOOD）
+    assert out["stats"]["minute_layer_days"] >= 1
+
+
+def test_v41_leader_minute_missing_falls_back_daily():
+    """领先指数缺分钟 bar → 回退日线原序（计数上报）。"""
+    n = 16
+    close = mk_close({"LDR": [0.01] * n, "C_GOOD": [0.012] * n,
+                      "C_MID": [0.005] * n, "C_NEWC": [0.005] * n,
+                      "C_ALT": [0.005] * n}, n)
+    sig_day = close.index[11].date()
+    bm = {(sig_day, c): _bars([100, 101, 102, 103]) for c in CONCEPTS}
+    # 领先 LDR 未登记 → 空
+    p = V3Params(daily_top=5, topk=2, minute_bars=4)
+    bt = V3Backtester(close, CONCEPTS, broad_codes=BROAD, allA_code="ALLA",
+                      params=p, minute_bars_provider=_FakeMinute(bm))
+    out = bt.run(close.index[11])
+    trades = out["trades"]
+    assert trades.iloc[0]["to"] == "C_GOOD"         # 日线第 1
+    assert out["stats"]["minute_fallback_leader"] >= 1
+
+
+def test_v41_top2_buffer_on_final_ranking():
+    """Top2 缓冲作用于分钟最终排名：持仓分钟第 2 → 续持。"""
+    n = 20
+    close = mk_close({"LDR": [0.01] * n, "C_GOOD": [0.012] * n,
+                      "C_MID": [0.005] * n, "C_NEWC": [0.005] * n,
+                      "C_ALT": [0.005] * n}, n)
+    bm = {}
+    for i in range(11, n):                          # 每个信号日同构 bar
+        d = close.index[i].date()
+        bm[(d, "LDR")] = _bars([100, 101, 102, 103], str(d))
+        bm[(d, "C_GOOD")] = _bars([100, 102, 104, 106], str(d))   # 分钟第 1
+        bm[(d, "C_MID")] = _bars([100, 100.5, 101, 101.5], str(d))
+        bm[(d, "C_NEWC")] = _bars([100, 99, 98, 97], str(d))
+        bm[(d, "C_ALT")] = _bars([100, 99, 98, 97], str(d))
+    # 日线第 1 = C_GOOD 且分钟第 1 = C_GOOD → 入场 C_GOOD；
+    # 其后各日分钟排名不变 → 持仓恒在最终 Top2 内 → 无换仓
+    p = V3Params(daily_top=5, topk=2, minute_bars=4)
+    bt = V3Backtester(close, CONCEPTS, broad_codes=BROAD, allA_code="ALLA",
+                      params=p, minute_bars_provider=_FakeMinute(bm))
+    out = bt.run(close.index[11])
+    assert len(out["trades"]) == 1 and out["trades"].iloc[0]["to"] == "C_GOOD"

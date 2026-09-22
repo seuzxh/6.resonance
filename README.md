@@ -76,6 +76,19 @@
       已证伪）；④空仓/国债避险（**V3 防御层已落地 strong4%**；2% 档过度防御
       已证伪）；⑤V3+防御栈上的共振窗 W12–15 单调改善（冻结轮事后发现，
       需独立预注册验证）；⑥冻结参数滚动样本外验证（V3 §12 第 5 条）。
+- [x] 2026-09-22 **V4.1 最佳方案落地**（用户指令"根据最佳方案进行修改"）：
+      规格 [docs/v4-best-plan.md](docs/v4-best-plan.md)——新 13 指数池
+      （+上证指数/深证成指）、日线 Top5 预选 + 收盘前 24 根 5min 纯分钟重排、
+      Top2 缓冲、无防御层。实现于 `resonance/v3.py`（`daily_top`/`minute_bars`
+      + `MinuteBarProvider`，52 项测试；`daily_top=0` 与 V3 逐位一致）。
+      数据约束：iFinD 月度配额 -4318 → 两新指数日线走本地 qlib 链路补采
+      （`work/collect_v41_qlib.py`，4 指数交叉验证 ≤0.9bps）；5min 覆盖仅
+      49.8%（dyn5 时代需求矩阵），分钟层按预注册降级策略执行并计数。
+      **覆盖受限回测（2025-09-22→2026-09-18，10bp 5 相位中位）：V4.1 分钟版
+      +53.39%/−23.07%/1.36 vs 纯日线 +43.80%/−24.60%/1.21——分钟层增量
+      +9.8pp 与文档全覆盖增量 +23.3pp 同向**；配额恢复（约 10-01）后补采
+      缺失 5min 做全覆盖锚点复现。V3+防御层栈保留为研究备选。见
+      [outputs/v4/report.md](outputs/v4/report.md)。
 
 ## 环境
 
@@ -91,6 +104,8 @@ conda run -n resonance python work/validate_data.py # 数据验证（schema/网�
 conda run -n resonance python work/backtest_dynamic.py  # 基线复现（变体矩阵）
 conda run -n resonance python work/backtest_v3.py       # V3 规格栈锚点对照 + 相位表
 conda run -n resonance python work/opt_v3.py --round N  # V3 十轮优化（N=1..10；终栈兜底 FROZEN_FINAL）
+conda run -n resonance python work/backtest_v41.py       # V4.1 分钟重排栈（覆盖受限口径）
+conda run -n resonance python work/collect_v41_qlib.py   # V4.1 两新指数日线补采（qlib 链路）
 conda run -n resonance python work/backtest_minute.py   # 分钟共振验证（5 相位×三变体）
 conda run -n resonance python work/backtest_exec.py     # 执行层验证（时点网格+止损网格×双粒度）
 conda run -n resonance python work/backtest_exec_w35.py  # 信号窗 w∈{20,5,3} 重验证
