@@ -27,34 +27,34 @@
       HARMFUL（中位差 −9.6pp）**，剂量效应明确：粒度越细越差；IC 诊断表明池内
       相关度排序（任意频率）对未来 5 日收益无预测力。5min 数据经 (code,day) 需求
       矩阵裁剪采集（611k dataVol，15:00 bar 与日线 0bps 一致）。见
-      [outputs/minute_resonance/report.md](outputs/minute_resonance/report.md)。
+      [outputs/archive/minute_resonance/report.md（master 快照）](outputs/archive/minute_resonance/report.md（master 快照）)。
 - [x] 2026-09-19 分钟级执行层优化（信号层不变，**B 项采纳**）：A 盘中交易时点
       NEUTRAL 不采纳（两腿对消：早卖旧 −0.25% vs 早买新 +0.29%，净≈0）；
       **B 5min 盘中追踪止损 SUCCESS——推荐 x=4%**：5 相位中位总收益 +28.93%
       vs 基线 +13.02%，最大回撤 −17.30% vs −36.70%，夏普 0.55→1.33，
       收益/回撤/夏普 5/5 相位全部改善；分钟 vs 收盘粒度增量 = 收益 +13.4pp +
       回撤 +5.7pp（64% 止损在上午 9–10 点触发=隔夜跳空早离场）。10/10 网格点
-      过预注册判据。见 [outputs/minute_exec/report.md](outputs/minute_exec/report.md)
-      与 [docs/minute-exec-design.md](docs/minute-exec-design.md)。
+      过预注册判据。见 [outputs/archive/minute_exec/report.md](outputs/archive/minute_exec/report.md)
+      与 [docs/archive/minute-exec-design.md](docs/archive/minute-exec-design.md)。
 - [x] 2026-09-19 信号窗口变更验证（用户指令 w∈{3,5}）：**缩短信号窗损大于益**——
       w=3 证伪（验证窗中位 −12.6%，全窗超额 −20pp 跑输全A）；w=5 收益让渡近半
       （全窗 +53% vs +152%）换更浅回撤；盘中止损增量与信号窗强相关（网格通过率
       w=20 10/10 > w=5 2/10 > w=3 1/10）。**最优组合仍为 w=20 + B4% 盘中止损**
       （帕累托支配所有短窗配置）；次优 w=5+B4%（+20.7%/−19.5%）。短窗 B 结果
       需 1,209 对补采去覆盖混杂后才是最终口径。见
-      [outputs/minute_exec/report_w35.md](outputs/minute_exec/report_w35.md)。
+      [outputs/archive/minute_exec/report_w35.md](outputs/archive/minute_exec/report_w35.md)。
 - [x] 2026-09-20 上涨共振验证（用户指令，up=上涨日条件相关，down 对照）：
       **不采纳**——裸栈 +4.2pp 小改善真实但被止损层吸收（生产栈 B4% 上
       −2.3~−4.8pp，功能重叠）；全窗 up +109% vs full +152%。**维持全样本
       20 日 Pearson + B4% 盘中止损（+28.9%/−17.3%）**；up 裸栈
       （+17.2%/−31.4%）留作无止损场景备选。判定脚本对照 bug 已修正并记录。
-      见 [outputs/minute_exec/report_upres.md](outputs/minute_exec/report_upres.md)。
+      见 [outputs/archive/minute_exec/report_upres.md](outputs/archive/minute_exec/report_upres.md)。
 - [x] 2026-09-20 用户组合口径验证（短窗上涨共振 4/5 日 + 3 日动量闸门 + 逐日滚动，
       消融阶梯归因）：**完整组合不替换生产配置**（B4% 栈让渡收益 11~20pp，止损与
       快信号第三次功能挤占）；**但 R3_w5 裸栈（+20.1%/−19.9%/0.82，5/5 相位，
       无分钟依赖）作为纯日线场景备选入库**。组件归因：短窗up共振 +3.6pp、闸门
       −6.7pp、滚动 +10.2pp（换手 6 倍）；逐日滚动消解网格相位敏感性（协议检验力
-      相应下降）。见 [outputs/minute_exec/report_uc.md](outputs/minute_exec/report_uc.md)。
+      相应下降）。见 [outputs/archive/minute_exec/report_uc.md](outputs/archive/minute_exec/report_uc.md)。
 - [x] 2026-09-20 **V3 最佳方案实现 + 十轮预注册优化**（用户指令"根据最佳方案
       进行项目开发"）：规格 [docs/v3-best-plan.md](docs/v3-best-plan.md)，
       引擎 `resonance/v3.py`（上涨共振 EW + 动态半衰期 + Top3 缓冲 + 3 日最短
@@ -145,6 +145,11 @@
       深证成指单锚 −1.7%≈现金为唯一跨 regime 存活者；幸存者偏差下数字仍偏
       乐观。生产口径（三锚 vs 深证成指单锚 vs regime 过滤）待用户决策。
       见 [outputs/exp_hist_2022/report.md](outputs/exp_hist_2022/report.md)。
+- [x] 2026-09-23 **定档**：用户决策**暂定三锚为生产口径**（知情保留
+      2022-24 警示；深证成指单锚跨 regime 备选由 OOS C1 并行裁决；防御层
+      熊市补测证明救不动三锚也不帮单锚，regime 过滤路线关闭）。dyn5 时代
+      实验资产归档至 work|outputs|docs /archive/（10 脚本+报告系列+2 设计
+      文档）；docs/v43-best-plan.md §七定档补记。
       六项负结论存档、每日执行流程、待决事项（池 9vs13 / 样本外验证 /
       每日 runner / 个股映射）一文件齐备。
 
@@ -181,7 +186,7 @@ resonance/     Python 包：config / ifind 客户端 / metrics 共振指标 / ba
 work/          运维脚本（probe 冒烟、采集、回测、优化运行器）
 tests/         离线单元测试（全部 mock）
 data/          本地缓存（gitignored）
-outputs/       交付物（v3 / minute_exec / index_backtest_framework / minute_resonance）
+outputs/       交付物（oos / v4 / v3 / exp_anchor / exp_hist_2022 / index_backtest_framework；archive/ 为 dyn5 时代归档）
 docs/          GPT 会话纪要、方案文档（V3 规格/优化协议/执行层设计）
 ```
 

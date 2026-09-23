@@ -75,7 +75,7 @@
 
 | 域 | 已证伪/不采纳 | 证据 |
 |---|---|---|
-| dyn5 信号层 | 池内分钟再排序（五代指标）；缩窗 w3/w5；up 条件相关；组合口径 | outputs/minute_resonance、minute_exec 各报告 |
+| dyn5 信号层 | 池内分钟再排序（五代指标）；缩窗 w3/w5；up 条件相关；组合口径 | outputs/archive/minute_exec 各报告（minute_resonance 在 master 快照）|
 | dyn5 执行层 | 盘中交易时点（NEUTRAL）；B4% 追踪止损仅对裸栈有效 | minute-exec-design |
 | V3 参数 | 止损 3~10%×冷静 0/2；topk 1/2/4/5；半衰期档/阈值；共振窗 7/8/12/15；领先窗 5/15/20；过滤窗 2/5(P5)；最短持有 2/5 | outputs/v3/rounds |
 | V3 防御层 | V3 栈有效（+38pp）但 V4.2 栈全负（G 轮） | report_v42 §五 |

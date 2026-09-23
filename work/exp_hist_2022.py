@@ -74,6 +74,25 @@ def main() -> int:
     df = pd.DataFrame(rows)
     print(df.to_string(index=False, float_format=lambda v: f"{v:+,.3f}"))
 
+    # 防御层补测（G 轮缺失的熊市段证据；三锚与深证成指单锚 × 无/强4/弱4/强2）
+    print("\n== 防御层网格（日线栈，10bp，5 相位中位）==")
+    ph25 = ["2024-12-27", "2024-12-30", "2024-12-31", "2025-01-02", "2025-01-03"]
+    for alabel, pool in (("三锚动选", TRIO), ("深证成指单锚", ["399001.SZ"])):
+        for vlabel, kw in (("无防御", {}), ("防御强4%", {"defense_dd": 0.04, "defense_strong": True}),
+                           ("防御弱4%", {"defense_dd": 0.04, "defense_strong": False}),
+                           ("防御强2%", {"defense_dd": 0.02, "defense_strong": True})):
+            line = [f"{alabel} {vlabel}"]
+            for wl, ph in (("熊22-24", phases), ("牛25-26", ph25)):
+                tot, dd, sh = [], [], []
+                for st in ph:
+                    bt = V3Backtester(close_all, concepts, broad_codes=pool,
+                                      params=V3Params(**BASE, **kw).with_(cost_bp=10.0))
+                    o = bt.run(st, "2024-12-31" if wl.startswith("熊") else "2026-09-18")
+                    stt = perf_stats(o["nav_curve"])
+                    tot.append(stt["total_return"]); dd.append(stt["max_drawdown"]); sh.append(stt["sharpe"])
+                line.append(f"{wl} {np.median(tot):+.1%}/{np.median(dd):.1%}")
+            print(" | ".join(line))
+
     bench = close_all["883957.TI"].loc["2022-01-04":END]
     print(f"\n对照（同窗买入持有）：同花顺全A {bench.iloc[-1]/bench.iloc[0]-1:+.1%} | "
           f"沪深300 {close_all['000300.SH'].loc['2022-01-04':END].iloc[-1]/close_all['000300.SH'].loc['2022-01-04':END].iloc[0]-1:+.1%} | "
