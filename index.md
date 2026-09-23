@@ -1,7 +1,7 @@
 # 文档导航
 
-本站为 **resonance** 项目的文档 Pages。仓库与代码见
-[README.md](README.md) · [GitHub](https://github.com/seuzxh/6.resonance)。
+本站为 **resonance** 项目的文档 Pages。仓库与代码（含 README）见
+[GitHub · seuzxh/6.resonance](https://github.com/seuzxh/6.resonance)。
 
 **现行方案：[V4.3 三锚动选（暂定）](docs/v43-best-plan.md)**
 —— 深证成指/国证2000/科创50 三锚动选 + 日线 Top5 × 24 根 5 分钟纯分钟重排
