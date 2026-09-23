@@ -56,11 +56,24 @@ def run(close, concepts, pool, prov, phases, cost):
     return tot, dd, sh, y25, y26, chg, stp, mfb
 
 
+# 池外参照锚（锚实验完整性；数据未到位时自动跳过）
+EXTRA_ANCHORS = {
+    "399303.SZ": "国证2000",      # 日线梯队 #2，全流程已验 +118.1%
+    "399001.SZ": "深证成指",      # 日线冠军，5min 待配额补采
+    "883404.TI": "同花顺情绪指数",  # 2026-09-22 用户追加，日线待配额
+}
+
+
 def table(close, concepts, prov, win_label, phases):
     rows = []
     entries = [("动态锚·9池", list(config.V41_BROAD_POOL))] + [
         (name, [code]) for code, name in config.V41_BROAD_POOL.items()
     ]
+    for code, name in EXTRA_ANCHORS.items():
+        if code in close.columns:
+            entries.append((f"{name}（池外）", [code]))
+        else:
+            print(f"[skip] 参照锚 {name} {code} 无日线（配额恢复后由 collect_v41.py 补齐自动纳入）")
     for label, pool in entries:
         tot, dd, sh, y25, y26, chg, stp, mfb = run(close, concepts, pool, prov, phases, 10.0)
         rows.append({

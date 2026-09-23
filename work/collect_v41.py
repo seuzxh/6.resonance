@@ -22,8 +22,10 @@ import pandas as pd  # noqa: E402
 from resonance import config  # noqa: E402
 from resonance.ifind import fetch_history_data, fetch_minute_close  # noqa: E402
 
-NEW_DAILY = ["000001.SH", "399001.SZ", "883417.TI"]  # 上证指数 / 深证成指 / 大盘股
-NEW_MINUTE = ["000001.SH", "883417.TI"]     # 池内缺 5min 的指数（399001 已出池）
+NEW_DAILY = ["000001.SH", "399001.SZ", "883417.TI", "883404.TI"]
+# 上证指数 / 深证成指 / 大盘股 / 同花顺情绪指数（2026-09-22 用户追加锚）
+NEW_MINUTE = ["000001.SH", "883417.TI", "399001.SZ", "883404.TI"]
+# 399001.SZ（深证成指）5min 为锚实验全流程终选所需（曾随出池停采）
 DAILY_START, DAILY_END = "2024-10-08", "2026-09-18"
 M5_START, M5_END = "2025-09-22", "2026-09-18"
 
