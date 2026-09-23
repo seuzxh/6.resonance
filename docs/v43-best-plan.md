@@ -51,3 +51,12 @@ B13（13 池对照）、C1（单锚深证成指对照）并行；≥60 信号日
 conda run -n resonance python work/signal_daily.py          # 每日 OOS（D3 主轨）
 conda run -n resonance python work/exp_anchor_full9.py      # 13 锚终表复现
 ```
+
+
+## 六、扩展验证警示（2026-09-23 追加，outputs/exp_hist_2022/report.md）
+
+2022-01→2024-12 时间外推（日线栈，参数未见过该时段）：**三锚动选 −56.2%/
+回撤 −58.1%，未通过验证**；+165.4% 属成长牛市 regime 依赖。同期唯一存活
+锚为深证成指单锚（−1.7%≈现金；2025-26 +135.5%）。生产口径是否改回深证
+成指单锚（或加 regime 过滤）**待用户决策**；本版本冻结记录不因此回滚，
+OOS 四轨继续按预注册运行。
