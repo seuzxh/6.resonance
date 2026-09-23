@@ -59,6 +59,17 @@ BROAD_INDEX_POOL = {
 # basic_data_service 响应中被直接省略，见 ifind.fetch_index_names）
 CONCEPT_CODE_RANGE = tuple(range(885001, 887000))
 
+# V4.3 锚定指数池（2026-09-23 用户决策，docs/v43-best-plan.md）：锚=三锚动选
+# （近10日动量在 {深证成指, 国证2000, 科创50} 中选当日锚）。依据：13 锚全流程
+# 筛选（outputs/exp_anchor §七/§八）三强为此三名；三锚动选完整周期
+# +165.4%/−16.2%/1.98 优于任一单锚（冠军深证成指 +135.5%）。V41_BROAD_POOL
+# 保留为 A9 轨（OOS 对照）与历史复现口径。
+V43_ANCHOR_POOL = {
+    "399001.SZ": "深证成指",
+    "399303.SZ": "国证2000",
+    "000688.SH": "科创50",
+}
+
 # V4.1 指数池（docs/v4-best-plan.md §3 初版 13 池：+上证指数/深证成指，
 # −红利指数/国证2000）。**2026-09-22 用户指令两次调整**
 # （docs/v41-pool-adjustment.md）：①删 上证50/深证成指/中证2000/科创综指，

@@ -36,8 +36,10 @@ OUT_DIR = config.OUTPUTS_DIR / "oos"
 POOL13 = ["883957.TI", "700050.TI", "000680.SH", "399006.SZ", "000688.SH", "000016.SH",
           "899050.BJ", "932000.CSI", "000300.SH", "000905.SH", "000852.SH", "399303.SZ",
           "000015.SH", "000001.SH", "399001.SZ"]
-# C1 = 固定深证成指锚全流程（outputs/exp_anchor §八终选冠军；锚决策交 OOS 裁决）
-TRACKS = {"A9": list(config.V41_BROAD_POOL), "B13": POOL13, "C1": ["399001.SZ"]}
+# C1 = 固定深证成指锚（单锚冠军对照）；D3 = V4.3 生产口径（三锚动选，
+# docs/v43-best-plan.md，2026-09-23 用户决策）
+TRACKS = {"D3": list(config.V43_ANCHOR_POOL),
+          "A9": list(config.V41_BROAD_POOL), "B13": POOL13, "C1": ["399001.SZ"]}
 NO_HF_COVER = {"700050.TI"}
 # 冻结参数（oos-validation-design §二；改任何一项实验作废）
 FROZEN = V3Params(topk=3, daily_top=5, hl_source="leader", cost_bp=10.0)
