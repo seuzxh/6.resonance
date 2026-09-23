@@ -108,6 +108,15 @@
       +39.44%），13 池整体仍领先 9 池。见
       [outputs/v4/report_v42.md](outputs/v4/report_v42.md)。
 - [x] 2026-09-22 **现阶段方案定稿 V4.2**（docs/v42-best-plan.md）：9 池 +
+- [x] 2026-09-22 **经验提炼 + 样本外实验准备**：
+      [docs/experiment-playbook.md](docs/experiment-playbook.md)（七条定律：五次
+      快慢挤占/孤峰必伪/样本内上界/评分免疫大杂烩/池-组件交互/领先指数对症/
+      降级预注册；负结论登记表防重复试验；新实验七条检查清单）；
+      [docs/oos-validation-design.md](docs/oos-validation-design.md)（双池并行
+      9vs13 样本外裁决、参数冻结、≥60 信号日判据、禁止事项与 backlog）；
+      `work/signal_daily.py` 每日 runner（增量日线+分钟自愈+OOS 起点无状态
+      重放+双轨落盘，机制已离线验收）。**阻塞：iFinD 月度配额再耗尽，
+      OOS 起点顺延至配额恢复（约 10-01）或新 token。**
       领先指数半衰期 + Top3 缓冲 + 24bar 分钟重排；三档成本与参数冻结清单、
       六项负结论存档、每日执行流程、待决事项（池 9vs13 / 样本外验证 /
       每日 runner / 个股映射）一文件齐备。
