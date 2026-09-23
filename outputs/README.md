@@ -1,8 +1,10 @@
 # outputs
 
-交付物目录（对应 GPT 会话 Windows 端结构）。
+交付物目录。`*.md` 报告入库；大文件（csv/json 等产物）gitignored。
 
-- `ifind_validation/`：数据验证交付（报告、manifest、diagnostic 试算）。
-- `index_backtest_framework/`：回测框架交付（报告、看板、调仓记录）。
+- `exp_anchor/`：锚点终选实验（13 锚全流程 + 9 池拆解，三锚决策依据）。
+- `exp_hist_2022/`：2022-2024 历史扩展验证（时间外推警示）+ 数据体检 +
+  防御层熊市补测。
+- `oos/`：样本外验证逐日信号 / 净值 / 审计（四轨，运行中）。
 
-大文件（csv/html/json 产物）gitignored；`*.md` 报告入库。
+旧版本交付（v3 / v4 / archive）已于 2026-09-23 清理，git 历史（≤0790071）可溯。
