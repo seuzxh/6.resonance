@@ -21,6 +21,14 @@
 - [锚点实验：13 锚全流程终选 + 9 池拆解归因](outputs/exp_anchor/report.md)
 - [2022-2024 历史扩展验证（时间外推警示级）+ 数据体检](outputs/exp_hist_2022/report.md)
 
+## 📐 图表（交互式）
+
+- [系统架构：数据源 → 缓存 → V3 引擎 → 产出](docs/diagrams/architecture.html)
+- [OOS 每日运行流程（三道数据防线）](docs/diagrams/oos-daily-workflow.html)
+- [信号生命周期时序（T → T+1 → T+2）](docs/diagrams/signal-lifecycle-sequence.html)
+- [数据流：双链路采集与降级修复](docs/diagrams/data-pipeline-dataflow.html)
+- [持仓状态机（建仓/持有/检查/风控出口）](docs/diagrams/holding-lifecycle.html)
+
 ## 🗄 起源
 
 - [GPT 会话迁移纪要（项目起源）](docs/gpt-session-summary.md)

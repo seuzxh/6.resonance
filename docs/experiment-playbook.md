@@ -91,6 +91,9 @@
 
 ## 四、数据边界备忘
 
+> 配图：[数据流图](diagrams/data-pipeline-dataflow.html)——双链路采集、
+> 降级与修复路径的可视化。
+
 - **HF 5min**：仅最近 ~1 年；微盘股/中证2000 无覆盖；配额与日线共享池；
   采集省配额口径：仅需尾盘 24 根时用 `day_start="12:00:00"`（跨日窗除外）。
 - **日线替代链路**：iFinD 配额尽时走本地 qlib bin（`work/collect_v41_qlib.py`：

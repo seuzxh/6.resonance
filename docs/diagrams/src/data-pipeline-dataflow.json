@@ -1,0 +1,290 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "数据流 · 双链路采集与降级修复",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1070,
+      540
+    ],
+    "views": [
+      {
+        "id": "daily-path",
+        "label": "日线主链路",
+        "focus": [
+          "src-ifind",
+          "upd",
+          "daily",
+          "v3",
+          "oos"
+        ],
+        "note": "history_data 增量 → 缓存 → 引擎 → 四轨产出。"
+      },
+      {
+        "id": "minute-path",
+        "label": "分钟链路",
+        "focus": [
+          "src-hf",
+          "topup",
+          "minute",
+          "v3"
+        ],
+        "note": "HF 5min 按需求矩阵自愈，供给尾盘 24bar 重排。"
+      },
+      {
+        "id": "degrade-repair",
+        "label": "降级与修复",
+        "focus": [
+          "src-qlib",
+          "src-hf",
+          "fallback",
+          "daily"
+        ],
+        "note": "配额尽走 qlib bin；09-24 事故用 HF 15:00bar=收盘修复日线。"
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "数据源"
+    },
+    {
+      "label": "采集口"
+    },
+    {
+      "label": "缓存"
+    },
+    {
+      "label": "引擎"
+    },
+    {
+      "label": "产出"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "src-ifind",
+      "type": "external",
+      "label": "iFinD REST",
+      "sublabel": "history_data",
+      "stage": 0,
+      "row": 0,
+      "height": 72,
+      "width": 150
+    },
+    {
+      "id": "src-qlib",
+      "type": "external",
+      "label": "qlib bin",
+      "sublabel": "本地降级源",
+      "stage": 0,
+      "row": 1,
+      "height": 72,
+      "width": 150
+    },
+    {
+      "id": "src-hf",
+      "type": "external",
+      "label": "iFinD HF",
+      "sublabel": "5min 分钟",
+      "stage": 0,
+      "row": 2,
+      "height": 72,
+      "width": 150
+    },
+    {
+      "id": "upd",
+      "type": "backend",
+      "label": "update_daily",
+      "sublabel": "增量 keep=last",
+      "stage": 1,
+      "row": 0,
+      "height": 72,
+      "width": 150
+    },
+    {
+      "id": "fallback",
+      "type": "security",
+      "label": "降级入口",
+      "sublabel": "qlib bin ≤0.9bps",
+      "stage": 1,
+      "row": 1,
+      "height": 72,
+      "width": 150
+    },
+    {
+      "id": "topup",
+      "type": "backend",
+      "label": "分钟自愈",
+      "sublabel": "当日新鲜度判",
+      "stage": 1,
+      "row": 2,
+      "height": 72,
+      "width": 150
+    },
+    {
+      "id": "daily",
+      "type": "database",
+      "label": "daily_bars",
+      "sublabel": "546 codes 收盘",
+      "stage": 2,
+      "row": 1,
+      "height": 72,
+      "width": 150
+    },
+    {
+      "id": "minute",
+      "type": "database",
+      "label": "minute5_bars",
+      "sublabel": "尾盘 24bar",
+      "stage": 2,
+      "row": 2,
+      "height": 72,
+      "width": 150
+    },
+    {
+      "id": "v3",
+      "type": "backend",
+      "label": "V3 引擎",
+      "sublabel": "共振 · 重排 · 回测",
+      "stage": 3,
+      "row": 1,
+      "height": 72,
+      "width": 150
+    },
+    {
+      "id": "report",
+      "type": "backend",
+      "label": "实验报告",
+      "sublabel": "exp_anchor · exp_hist",
+      "stage": 4,
+      "row": 0,
+      "height": 72,
+      "width": 150
+    },
+    {
+      "id": "oos",
+      "type": "database",
+      "label": "OOS 四轨",
+      "sublabel": "信号 · 净值 · 审计",
+      "stage": 4,
+      "row": 2,
+      "height": 72,
+      "width": 150
+    }
+  ],
+  "flows": [
+    {
+      "id": "f-daily-fetch",
+      "from": "src-ifind",
+      "to": "upd",
+      "label": "日线增量",
+      "classification": "收盘价",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -18
+    },
+    {
+      "id": "f-qlib",
+      "from": "src-qlib",
+      "to": "upd",
+      "label": "降级并入",
+      "classification": "bin 解码",
+      "variant": "dashed"
+    },
+    {
+      "id": "f-hf",
+      "from": "src-hf",
+      "to": "topup",
+      "label": "5min bar",
+      "classification": "高频行情",
+      "route": "straight"
+    },
+    {
+      "id": "f-upd-write",
+      "from": "upd",
+      "to": "daily",
+      "label": "增量写回",
+      "classification": "幂等覆盖",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-topup-write",
+      "from": "topup",
+      "to": "minute",
+      "label": "bar 写回",
+      "classification": "需求矩阵",
+      "route": "straight"
+    },
+    {
+      "id": "f-repair",
+      "from": "minute",
+      "to": "daily",
+      "label": "15:00bar 修复",
+      "classification": "0bps 一致",
+      "variant": "security",
+      "labelDy": -14
+    },
+    {
+      "id": "f-daily-v3",
+      "from": "daily",
+      "to": "v3",
+      "label": "收盘宽表",
+      "classification": "pivot",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -18
+    },
+    {
+      "id": "f-minute-v3",
+      "from": "minute",
+      "to": "v3",
+      "label": "24bar 窗",
+      "classification": "window_span"
+    },
+    {
+      "id": "f-v3-report",
+      "from": "v3",
+      "to": "report",
+      "label": "回测实验",
+      "classification": "样本内",
+      "variant": "dashed"
+    },
+    {
+      "id": "f-v3-oos",
+      "from": "v3",
+      "to": "oos",
+      "label": "四轨重放",
+      "classification": "无状态",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "双链路",
+      "items": [
+        "日线：history_data 增量 + keep=last 幂等",
+        "分钟：HF 5min 按当日新鲜度自愈"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "降级与修复",
+      "items": [
+        "配额 -4318 → qlib bin 降级（≤0.9bps）",
+        "09-24 事故：HF 15:00bar=收盘修复 404/546"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "单一消费者",
+      "items": [
+        "V3 引擎是唯一数据消费者",
+        "产出分研究（实验报告）与评价（OOS 四轨）"
+      ]
+    }
+  ]
+}

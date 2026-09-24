@@ -64,6 +64,7 @@ tests/         离线单元测试（全部 mock）
 data/          本地缓存（gitignored）
 outputs/       交付物（exp_anchor / exp_hist_2022 / oos）
 docs/          现行方案 v43 / 实验手册 / OOS 设计 / GPT 起源纪要
+docs/diagrams/ 交互式图表（架构/流程/时序/数据流/状态机，archify 生成）
 ```
 
 ## 硬约束

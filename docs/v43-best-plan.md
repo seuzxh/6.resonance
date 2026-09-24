@@ -30,6 +30,11 @@
 均衡轮动，动选收益与好锚下限兼得；优于任一单锚（冠军深证成指 +135.5%）。
 对照：V4.2 生产口径（9 池动选）同期 +76.8%/−33.8%。
 
+> 配图（交互式 HTML，docs/diagrams/）：
+> [系统架构](diagrams/architecture.html) ·
+> [信号生命周期时序](diagrams/signal-lifecycle-sequence.html) ·
+> [持仓状态机](diagrams/holding-lifecycle.html)
+
 ## 三、冻结参数（V4.2 全量继承 + 池替换）
 
 ```python
