@@ -52,8 +52,15 @@ def update_daily(end_date: str) -> None:
     f = config.CACHE_DIR / "daily_bars.parquet"
     bars = pd.read_parquet(f)
     have_last = bars.groupby("symbol")["date"].max()
-    # 统一按最大缓存日的次日为公共补采窗口（逐 code 差异会浪费请求批次）
-    start = str(pd.Timestamp(have_last.max()) + pd.Timedelta(days=1))
+    # 补采窗口起点 = 活跃 code（末日 ≥ 全局末日−7 天）的最小末日 + 1：
+    # 用 min 而非 max，保证部分批次失败后重跑能补齐落后 code（keep="last"
+    # 幂等覆盖已有行）；长期停滞的僵死 code 剔除出采集集并上报。
+    cutoff = pd.Timestamp(have_last.max()) - pd.Timedelta(days=7)
+    active = have_last[pd.to_datetime(have_last) >= cutoff]
+    lagged = sorted(set(have_last.index) - set(active.index))
+    if lagged:
+        print(f"[daily] 警告：{len(lagged)} 个 code 停滞 >7 天，跳过补采：{lagged[:8]}{'…' if len(lagged) > 8 else ''}")
+    start = (pd.Timestamp(active.min()) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     if start > end_date:
         print(f"[daily] 已是最新（{have_last.max()} ≥ {end_date}）")
         return
@@ -75,7 +82,9 @@ def update_daily(end_date: str) -> None:
     if frames:
         new = pd.concat(frames, ignore_index=True)
         out = pd.concat([bars, new], ignore_index=True)
-        out = out.drop_duplicates(subset=["symbol", "date"]).sort_values(
+        # keep="last"：重采覆盖旧行（2026-09-23 事故教训——盘中跑一次写入
+        # 昨收快照后，收盘后重跑因保旧行无法修复）
+        out = out.drop_duplicates(subset=["symbol", "date"], keep="last").sort_values(
             ["symbol", "date"]).reset_index(drop=True)
         out.to_parquet(f, index=False)
         got_days = pd.to_datetime(new["date"]).dt.date.nunique()
@@ -95,6 +104,9 @@ def topup_minute_for_window(close_all, concepts, pool, end_date) -> int:
     cal = close_all.index
     s0 = cal.searchsorted(pd.Timestamp(OOS_START))
     s1 = cal.searchsorted(pd.Timestamp(end_date), side="right")
+    # 新鲜度按"当日是否有 bar"判（2026-09-23 事故教训——window_span 跨日取到
+    # 4 个交易日前旧 bar，非空误判为已覆盖，当日尾盘 24bar 从未被采到）
+    have_day = set(zip(m5["symbol"], m5["datetime"].dt.normalize()))
     need: dict[str, set[str]] = {}
     for i in range(s0, s1):
         if not (sig.has_leader[i] and sig.gate[i]):
@@ -107,7 +119,7 @@ def topup_minute_for_window(close_all, concepts, pool, end_date) -> int:
         for c in list(r["concept"].head(FROZEN.daily_top)) + [leader]:
             if c in NO_HF_COVER and c == leader:
                 continue
-            if prov.window_span(c, d, FROZEN.minute_bars).empty and c not in nocover:
+            if (c, pd.Timestamp(d).normalize()) not in have_day and c not in nocover:
                 need.setdefault(c, set()).add(str(d.date()))
     if not need:
         return 0
@@ -182,6 +194,14 @@ def main() -> int:
     global OOS_START
     if args.oos_start:
         OOS_START = args.oos_start
+
+    # 盘中硬闸（2026-09-23 事故教训：11:29 运行使 iFinD 当日"收盘"返回昨收/
+    # NaN，整行假数据入库且旧去重逻辑不可覆盖）
+    now = pd.Timestamp.now()
+    if str(now.date()) == args.date and now.hour * 60 + now.minute < 15 * 60 + 5:
+        print("拒绝盘中运行：当日未收盘，iFinD 会以昨收/NaN 污染日线缓存。"
+              "请在 15:05 后运行，或 --date 指定已收盘日期。")
+        return 2
 
     update_daily(args.date)
     for track, pool in TRACKS.items():
