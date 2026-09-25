@@ -17,23 +17,24 @@
             <td class="mono">{{ r.date.slice(5) }}</td>
             <td><b class="mono">{{ r.code }}</b> <i>{{ r.name }}</i></td>
             <td>{{ r.track }}</td>
-            <td :class="ACT[r.action]">{{ r.action }}</td>
-            <td class="num mono" :class="r.ret >= 0 ? 'up' : 'down'">{{ r.ret == null ? '—' : pct(r.ret) }}</td>
+            <td><span class="act" :class="ACT[r.action]">{{ r.action }}</span></td>
+            <td class="num mono" :class="r.ret == null ? '' : r.ret > 0 ? 'up' : r.ret < 0 ? 'down' : 'flat'">{{ r.ret == null ? '—' : pct(r.ret) }}</td>
             <td class="num mono lg">{{ r.entry == null ? '—' : r.entry.toFixed(2) }}</td>
             <td class="num mono lg">{{ r.exit == null ? '—' : r.exit.toFixed(2) }}</td>
             <td class="num mono lg">{{ r.hold == null ? '—' : r.hold + '日' }}</td>
           </tr>
           <tr v-if="!rows.length"><td colspan="8" class="empty">OOS 窗口暂无已平仓或持仓信号</td></tr>
         </tbody>
-        <tfoot v-if="compact"><tr><td colspan="8" class="more"><a href="/signals/">查看全部信号 →</a></td></tr></tfoot>
+        <tfoot v-if="compact"><tr><td colspan="8" class="more"><a :href="BASE + 'signals/'">查看全部信号 →</a></td></tr></tfoot>
       </table>
     </div>
   </div>
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-const ACT: Record<string, string> = { 买: 'buy', 卖: 'sell', 换: 'sell', 持: 'hold' }
+const ACT: Record<string, string> = { 买: 'buy', 卖: 'sell', 换: 'swap', 持: 'hold' }
 const { compact } = defineProps<{ compact?: boolean }>()
+const BASE = import.meta.env.BASE_URL
 const data = ref<any>({ rows: [] })
 const flt = ref('all')
 onMounted(async () => {
@@ -51,7 +52,7 @@ const pct = (v: number) => (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1)
 .sub { font-size: 12px; color: var(--text-low); margin-bottom: 12px; }
 .filters { display: flex; gap: 6px; margin-bottom: 10px; }
 .filters button { font-size: 12px; line-height: 22px; padding: 0 10px; border-radius: 5px; background: none; border: 1px solid var(--line); color: var(--text-mid); cursor: pointer; }
-.filters button.on { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+.filters button.on { border-color: rgba(232, 192, 107, 0.35); color: #cbb37e; background: transparent; }
 .page-wrap.compact { padding: 0 12px 6px; max-width: none; }
 .page-wrap.compact td, .page-wrap.compact th { padding: 7px 8px; font-size: 12px; }
 .table { overflow-x: auto; }
@@ -59,9 +60,15 @@ table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th { background: var(--panel-2); color: var(--text-low); font-weight: 500; text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
 td b { font-weight: 600; }
-td i { font-style: normal; color: var(--text-mid); }
+td i { font-style: normal; color: #A8BAD1; }
 .num { text-align: right; }
-.buy { color: var(--up); } .sell { color: var(--down); } .hold { color: var(--text-mid); }
+.flat { color: #8FA3BD; }
+/* 动作胶囊：A股语义 红买/绿卖，换=青，持=米金；半透明底+同色描边 */
+.act { display: inline-block; min-width: 2.2em; text-align: center; padding: 1px 7px; border-radius: 4px; font-size: 11px; line-height: 18px; }
+.act.buy { color: #FF6E64; background: rgba(255, 84, 73, 0.10); box-shadow: inset 0 0 0 1px rgba(255, 84, 73, 0.30); }
+.act.sell { color: #2BC98F; background: rgba(0, 181, 120, 0.10); box-shadow: inset 0 0 0 1px rgba(0, 181, 120, 0.30); }
+.act.swap { color: #6FCDE8; background: rgba(95, 184, 201, 0.10); box-shadow: inset 0 0 0 1px rgba(111, 205, 232, 0.30); }
+.act.hold { color: #d8bd7e; background: rgba(232, 192, 107, 0.08); box-shadow: inset 0 0 0 1px rgba(232, 192, 107, 0.26); }
 .empty { color: var(--text-low); text-align: center; padding: 24px 0; }
 .lg { display: none; }
 .page-wrap.compact .lg { display: none !important; }

@@ -5,16 +5,16 @@
         <span class="tt">近五日</span>
         <span class="sub">收盘后随 runner 发布 · 点卡片看当日明细</span>
       </div>
-      <div class="cards"><article v-for="(day, i) in days" :key="day.date" class="card panel" :class="{ open: open === i }">
-        <button class="head" :aria-expanded="open === i" @click="open = open === i ? -1 : i">
+      <div class="cards"><article v-for="(day, i) in days" :key="day.date" class="card panel" :class="{ open: !collapsed.has(i) }">
+        <button class="head" :aria-expanded="!collapsed.has(i)" @click="toggle(i)">
           <span class="date"><b class="mono">{{ day.date.slice(5) }}</b><i class="wd">{{ day.wd }}</i></span>
           <span class="chips">
-            <span v-for="t in day.tracks.filter(t => SHOW.includes(t.track))" :key="t.track"
+            <span v-for="t in day.tracks.filter(t => t.track.startsWith('D3'))" :key="t.track"
                   class="chip mono" :class="t.ret >= 0 ? 'up' : 'down'">{{ t.track }} {{ pct(t.ret) }}</span>
           </span>
           <i class="caret" />
         </button>
-        <div v-if="open === i" class="body">
+        <div v-if="!collapsed.has(i)" class="body">
           <div class="row"><span class="k">信号</span>
             <span class="v">
               <span v-for="s in day.signals" :key="s.code + s.meta" class="sig">
@@ -23,9 +23,9 @@
               <span v-if="!day.signals.length" class="none">当日无信号（闸门未触发或空仓等待）</span>
             </span>
           </div>
-          <div class="row"><span class="k">两轨</span>
+          <div class="row"><span class="k">净值</span>
             <span class="v">
-              <span v-for="t in day.tracks.filter(t => SHOW.includes(t.track))" :key="t.track" class="track">
+              <span v-for="t in day.tracks" :key="t.track" class="track">
                 <i>{{ t.track }}</i><em class="mono">{{ t.nav.toFixed(3) }} <b :class="t.ret >= 0 ? 'up' : 'down'">{{ pct(t.ret) }}</b></em>
               </span>
             </span>
@@ -38,9 +38,14 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-const SHOW = ['D3', 'C1']
+// 卡片头 chip 只显 D3（轨名以 D3 开头匹配）；明细净值行显示全部轨
 const d = ref<any>(null)
-const open = ref(0)
+const collapsed = ref(new Set<number>())   // 默认全部展开，点击卡片头可收起
+function toggle(i: number) {
+  const n = new Set(collapsed.value)
+  if (n.has(i)) n.delete(i); else n.add(i)
+  collapsed.value = n
+}
 const days = computed(() => (d.value ? d.value.days : []))
 onMounted(async () => {
   d.value = await (await fetch(import.meta.env.BASE_URL + 'data/recent.json', { cache: 'no-store' })).json()

@@ -30,11 +30,11 @@ OUT = config.OUTPUTS_DIR / "oos"
 SITE_DATA = Path(__file__).resolve().parents[1] / "site" / "public" / "data"
 PUBLISH_LAG = 0                     # 实时公开（2026-09-25 用户反馈信号不可见，弃 T-1）
 NAV_START = "2026-01-01"            # 展示净值起点（样本内+样本外连续，图上标注 OOS 起点）
-SHOW_TRACKS = ("D3", "C1")          # 站点展示轨
+SHOW_TRACKS = ("D3", "C1", "G2", "K5")   # 站点展示轨（D3 生产 + 三锚；C1=深证锚，展示名统一用锚名）
 NAV_TRACKS = ("D3", "C1", "G2", "K5")  # 进净值图的轨（G2/K5 为三锚分净值对照）
 TRACK_NAMES = {
-    "D3": "D3 三锚动选 · 整体（生产）",
-    "C1": "深证成指锚（＝C1 轨）",
+    "D3": "D3 三锚动选（生产）",
+    "C1": "深证成指锚",
     "G2": "国证 2000 锚",
     "K5": "科创 50 锚",
 }
@@ -89,14 +89,13 @@ def _trades(track: str) -> pd.DataFrame:
 
 
 def validate(today: pd.Timestamp) -> tuple[str, pd.Series]:
-    for tr in SHOW_TRACKS:
-        f = OUT / f"nav_{tr}.csv"
-        if not f.exists():
-            raise SystemExit(f"[publish] 缺 {f.name}（runner 未跑完？）拒绝发布")
+    f = OUT / "nav_D3.csv"                     # 硬闸只看生产轨；其余轨缺官方文件走连续展示口径
+    if not f.exists():
+        raise SystemExit("[publish] 缺 nav_D3.csv（runner 未跑完？）拒绝发布")
     navs = {tr: _nav(tr) for tr in NAV_TRACKS if (OUT / f"nav_{tr}.csv").exists()}
-    d3, c1 = navs["D3"], navs["C1"]
-    if d3.index[-1] != c1.index[-1]:
-        raise SystemExit(f"[publish] D3/C1 末日不一致：{d3.index[-1].date()} vs {c1.index[-1].date()}")
+    d3 = navs["D3"]
+    if "C1" in navs and d3.index[-1] != navs["C1"].index[-1]:
+        print(f"[publish] 警告：D3/C1 末日不一致（{d3.index[-1].date()} vs {navs['C1'].index[-1].date()}）")
     ret = d3.pct_change().abs()
     if (ret > 0.2).any():
         raise SystemExit(f"[publish] D3 单日 |{ret.max():.1%}| >20%，疑似脏数据，拒绝发布")
@@ -107,31 +106,50 @@ def validate(today: pd.Timestamp) -> tuple[str, pd.Series]:
     return str(as_of.date()), d3
 
 
+def _stitched(tr: str, as_of: pd.Timestamp) -> pd.Series:
+    """拼接展示口径净值：样本内 replay + 官方 OOS×样本内末值缩放；无官方文件则连续 replay。
+
+    与 build_nav 曲线同口径（近五日卡片/天数窗口不再受官方 OOS 落盘起点限制）。"""
+    f = OUT / f"nav_{tr}.csv"
+    official = _nav(tr) if f.exists() else None
+    end_in = str((official.index[0] - pd.Timedelta(days=1)).date()) if official is not None else str(as_of.date())
+    nav_in = replay_display(tr, end_in)["nav_curve"]
+    if official is not None:
+        return pd.concat([nav_in, official * float(nav_in.iloc[-1])])
+    return nav_in
+
+
+def _trades_stitched(tr: str, cutoff: pd.Timestamp) -> pd.DataFrame:
+    """拼接展示口径事件：replay（至 OOS 前一日）+ 官方 OOS；无官方文件则连续 replay。"""
+    f_tr = OUT / f"trades_{tr}.csv"
+    if f_tr.exists():
+        prev = str((_nav(tr).index[0] - pd.Timedelta(days=1)).date())
+        return pd.concat([replay_display(tr, prev)["trades"], _trades(tr)], ignore_index=True)
+    return replay_display(tr, cutoff)["trades"]
+
+
 def build_recent(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dict:
-    d3 = _nav("D3")
+    d3 = _stitched("D3", cutoff)
     days_idx = [d for d in d3.index if d <= cutoff][-5:]
     days = []
     for day in days_idx:
         sigs = []
         for tr in SHOW_TRACKS:
-            for _, r in _trades(tr).iterrows():
+            for _, r in _trades_stitched(tr, cutoff).iterrows():
                 if r["date"] != day:
                     continue
                 to = r["to"] if isinstance(r["to"], str) else ""
                 fr = r["from"] if isinstance(r["from"], str) else ""
                 code = to or fr
                 sigs.append({"code": code.replace(".TI", ""), "name": names.get(code, code),
-                             "meta": f"{ACT.get(r['type'], r['type'])} @{r['price']:.2f} · {tr} 轨"})
+                             "meta": f"{ACT.get(r['type'], r['type'])} @{r['price']:.2f} · {TRACK_NAMES[tr]}"})
         tracks = []
         for tr in NAV_TRACKS:
-            f = OUT / f"nav_{tr}.csv"
-            if not f.exists():
-                continue
-            s = _nav(tr)
+            s = _stitched(tr, cutoff)
             if day not in s.index:
                 continue
             i = s.index.get_loc(day)
-            tracks.append({"track": tr, "nav": round(float(s.iloc[i]), 4),
+            tracks.append({"track": TRACK_NAMES[tr], "nav": round(float(s.iloc[i]), 4),
                            "ret": None if i == 0 else round(float(s.iloc[i] / s.iloc[i - 1] - 1), 5)})
         days.append({"date": str(day.date()), "wd": WD[day.weekday()],
                      "anchors": _anchors_at(closes, day), "signals": sigs,
@@ -139,14 +157,19 @@ def build_recent(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dic
     last = days_idx[-1]
     aligned = sum(1 for a in days[-1]["anchors"] if a["state"] == "多")
     return {"version": 1, "as_of": str(last.date()),
-            "generated_at": pd.Timestamp.now().strftime("%Y-%m-%dT%H:%M"),
+            "generated_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
             "health": "ok" if (pd.Timestamp.now().normalize() - last).days <= 4 else "stale",
             "align": {"aligned": aligned, "total": len(days[-1]["anchors"])},
             "days": days[::-1]}   # 最新在前
 
 
+_REPLAY_CACHE: dict = {}
+
+
 def replay_display(track: str, end_date: str) -> dict:
     """展示用净值重放：NAV_START 起全窗（读缓存，不触网、不动 OOS 官方落盘）。"""
+    if (track, end_date) in _REPLAY_CACHE:
+        return _REPLAY_CACHE[(track, end_date)]
     from resonance.v3 import MinuteBarProvider, V3Backtester
     from work import signal_daily as sd
     close_all, concepts = sd.load_wide()
@@ -155,7 +178,9 @@ def replay_display(track: str, end_date: str) -> dict:
     prov = MinuteBarProvider(m5.pivot(index="datetime", columns="symbol", values="close").sort_index())
     bt = V3Backtester(close_all, concepts, broad_codes=sd.TRACKS[track],
                       params=sd.FROZEN, minute_bars_provider=prov)
-    return bt.run(NAV_START, end_date)
+    out = bt.run(NAV_START, end_date)
+    _REPLAY_CACHE[(track, end_date)] = out
+    return out
 
 
 def _holdings_from_trades(tr: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp):
@@ -257,8 +282,15 @@ def build_nav(names: dict, as_of: str) -> dict:
 def build_signals(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dict:
     rows = []
     for tr in SHOW_TRACKS:
+        f_tr = OUT / f"trades_{tr}.csv"
+        if f_tr.exists():
+            # 样本内展示重放（至 OOS 前一日）＋ 官方 OOS 事件，与净值拼接口径一致
+            prev = str((_nav(tr).index[0] - pd.Timedelta(days=1)).date())
+            tdf = pd.concat([replay_display(tr, prev)["trades"], _trades(tr)], ignore_index=True)
+        else:
+            tdf = replay_display(tr, cutoff)["trades"]   # G2/K5 无官方落盘 → 连续展示口径
         open_pos = None
-        for _, r in _trades(tr).iterrows():
+        for _, r in tdf.iterrows():
             if r["date"] > cutoff:
                 continue
             typ = r["type"]
@@ -267,14 +299,14 @@ def build_signals(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> di
             elif typ in ("exit", "stop") and open_pos:
                 hold = int((r["date"] - open_pos["date"]).days)
                 ret = float(r["price"]) / open_pos["price"] - 1
-                rows.append({"date": str(r["date"].date()), "track": tr,
+                rows.append({"date": str(r["date"].date()), "track": TRACK_NAMES[tr],
                              "code": open_pos["code"].replace(".TI", ""),
                              "name": names.get(open_pos["code"], open_pos["code"]),
                              "action": "卖", "entry": round(open_pos["price"], 2),
                              "exit": round(float(r["price"]), 2), "ret": round(ret, 4), "hold": hold})
                 open_pos = None
             elif typ == "switch" and open_pos:
-                rows.append({"date": str(r["date"].date()), "track": tr,
+                rows.append({"date": str(r["date"].date()), "track": TRACK_NAMES[tr],
                              "code": open_pos["code"].replace(".TI", ""),
                              "name": names.get(open_pos["code"], open_pos["code"]),
                              "action": "换", "entry": round(open_pos["price"], 2),
@@ -285,13 +317,14 @@ def build_signals(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> di
             px = closes[open_pos["code"]].dropna()
             px = px.loc[:cutoff]
             last_px = float(px.iloc[-1])
-            rows.append({"date": str(open_pos["date"].date()), "track": tr,
+            rows.append({"date": str(open_pos["date"].date()), "track": TRACK_NAMES[tr],
                          "code": open_pos["code"].replace(".TI", ""),
                          "name": names.get(open_pos["code"], open_pos["code"]),
                          "action": "持", "entry": round(open_pos["price"], 2),
                          "exit": round(last_px, 2),
                          "ret": round(last_px / open_pos["price"] - 1, 4),
                          "hold": int((cutoff - open_pos["date"]).days)})
+    rows.sort(key=lambda r: r["date"], reverse=True)   # 最新在前（compact 取头 N 条=真最新）
     return {"version": 1, "as_of": str(cutoff.date()), "rows": rows}
 
 

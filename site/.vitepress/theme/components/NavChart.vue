@@ -55,7 +55,7 @@ function render() {
   const holdMap = new Map<string, string>()      // "track|date" -> 持仓名
   for (const s of nav.value.series) {
     for (const e of s.events ?? []) evMap.set(`${s.track}|${e[0]}`, [e[1], e[2], e[3]])
-    for (const h of s.holdings ?? []) holdMap.set(`${s.track}|${h[0]}`, h[2])
+    for (const h of s.holdings ?? []) holdMap.set(`${s.track}|${h[0]}`, `${h[1]} ${h[2]}`)   // 代码 名称
   }
   const oosStart: string = nav.value.oos_start || ''
   const showOos = oosStart && dates.includes(oosStart)
@@ -65,7 +65,8 @@ function render() {
     type: 'line' as const,
     showSymbol: false,
     data: sliced(s).map((p: any[]) => p[1]),
-    lineStyle: { width: s.track === 'D3' ? 3 : 1.6, color: COLORS[s.track] || '#93A7C0' },
+    lineStyle: { width: s.track === 'D3' ? 3.2 : 1.6, color: COLORS[s.track] || '#93A7C0' },
+    ...(s.track !== 'D3' ? { lineStyle: { width: 1.6, color: COLORS[s.track] || '#93A7C0', opacity: 0.65 } } : {}),
     itemStyle: { color: COLORS[s.track] || '#93A7C0' },
     emphasis: { focus: 'series' as const },
     ...(s.track === 'D3' && showOos ? {
@@ -108,11 +109,15 @@ function render() {
           }
           html += `<br/><span style="color:${p.color}">━</span> ${p.seriesName} <b>${Number(p.value).toFixed(3)}</b>${ret}`
         }
-        for (const tr of ['D3', 'C1']) {
+        for (const s of nav.value.series) {
+          const tr = s.track
           const ev = evMap.get(`${tr}|${date}`)
-          if (ev) html += `<br/><span style="color:#E8C06B">${tr} 当日${ev[0]}</span> ${ev[1]} ${ev[2]}`
           const h = holdMap.get(`${tr}|${date}`)
-          if (h && !ev) html += `<br/><span style="color:#5E7391">${tr} 持有</span> ${h}`
+          const nm = tr === 'D3' ? 'D3' : s.name.replace('锚', '').replace('三锚动选（生产）', '')
+          const lc = COLORS[tr] || '#93A7C0'
+          if (ev) html += `<br/><span style="color:${lc}">●</span> <span style="color:#E8C06B">${nm} ${ev[0]}</span> ${ev[1]} ${ev[2]}`
+          else if (h) html += `<br/><span style="color:${lc}">●</span> <span style="color:${lc}">${nm} 持有</span> ${h}`
+          else html += `<br/><span style="color:${lc};opacity:.45">○</span> <span style="color:#93A7C0">${nm} 空仓</span>`
         }
         return html
       },
@@ -122,7 +127,7 @@ function render() {
       data: dates,
       boundaryGap: false,
       axisLine: { lineStyle: { color: '#1C3149' } },
-      axisLabel: { color: '#5E7391', fontSize: 10 },
+      axisLabel: { color: '#7E93AF', fontSize: 11 },
       axisTick: { show: false },
     },
     yAxis: {
@@ -141,7 +146,7 @@ watch(range, render)
 <style scoped>
 .tt { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.06em; margin: 6px 0 4px; }
 .sub { font-size: 12px; color: var(--text-low); margin-bottom: 12px; line-height: 1.6; }
-.stats { display: flex; margin-bottom: 12px; }
+.stats { display: flex; margin-bottom: 18px; }
 .stats > div { flex: 1; padding: 10px 12px; }
 .stats > div + div { border-left: 1px solid var(--line-soft); }
 .stats span { display: block; font-size: 11px; color: var(--text-low); letter-spacing: 0.08em; }
@@ -151,7 +156,7 @@ watch(range, render)
 .page-wrap.compact { padding: 0 12px 6px; max-width: none; }
 .ranges { display: flex; gap: 6px; margin-bottom: 8px; }
 .ranges button { font-size: 12px; line-height: 22px; padding: 0 10px; border-radius: 5px; background: none; border: 1px solid var(--line); color: var(--text-mid); cursor: pointer; }
-.ranges button.on { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+.ranges button.on { border-color: rgba(232, 192, 107, 0.35); color: #cbb37e; background: transparent; }
 .chartp { padding: 8px 6px 4px; }
 .chartbox { width: 100%; height: 440px; }
 .compact .chartbox { height: 258px; }

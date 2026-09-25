@@ -166,7 +166,12 @@ ${groupsHtml}
 `
 await writeFile(join(docsDst, 'index.md'), index, 'utf8')
 
-// ---- 5. 图库页（iframe 相对路径：../diagrams/，base 无关） ----
+// ---- 5. 图库页（iframe 用构建期 base 拼根绝对路径：相对路径在无尾斜杠 URL
+//         下会解析错位（/docs/diagrams → iframe 打到 /docs/diagrams/x.html）） ----
+const BASE = (() => {
+  const b = process.env.VITEPRESS_BASE ?? '/'
+  return b.endsWith('/') ? b : b + '/'
+})()
 const gallery = `---
 title: 图表
 outline: false
@@ -181,7 +186,7 @@ ${Object.entries(DIAGRAMS).map(([f, [title, desc]]) => `## ${title}
 
 ${desc}
 
-<iframe src="../diagrams/${f}" loading="lazy" title="${title}"
+<iframe src="${BASE}diagrams/${f}" loading="lazy" title="${title}"
   style="width:100%;height:640px;border:1px solid rgba(128,128,128,.35);border-radius:8px;background:#fff">
 </iframe>
 

@@ -24,6 +24,11 @@
   --vp-c-bg: var(--bg);
   --vp-c-bg-alt: var(--panel);
   --vp-c-bg-elv: var(--panel);
+  /* 斑马纹等 soft 底必须收进深色系：VitePress light 默认 #f6f6f7，
+     会在深色页面上把偶数表格行刷成白底（浅色文字直接隐形） */
+  --vp-c-bg-soft: rgba(255, 255, 255, 0.025);
+  --vp-c-mute: var(--panel-2);
+  --vp-c-mute-alt: var(--panel);
   --vp-c-text-1: var(--text-hi);
   --vp-c-text-2: var(--text-mid);
   --vp-c-text-3: var(--text-low);
@@ -44,7 +49,7 @@
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .up { color: var(--up); }
 .down { color: var(--down); }
-.page-wrap { max-width: 1180px; margin: 0 auto; padding: 16px 16px 40px; }
+.page-wrap { max-width: 1180px; margin: 0 auto; padding: 10px 16px 40px; }
 .panel {
   background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
 }

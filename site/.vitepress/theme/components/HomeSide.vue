@@ -5,22 +5,23 @@
       <div class="st"><span>最新净值</span><b class="mono">{{ nav ? nav.stats.D3.nav.toFixed(3) : '—' }}</b></div>
       <div class="st"><span>{{ (nav && nav.start || '').slice(0, 4) || '2026' }} 收益</span><b class="mono up">{{ nav ? pct(nav.stats.D3.total_ret) : '—' }}</b></div>
       <div class="st"><span>最大回撤</span><b class="mono down">{{ nav ? pct(nav.stats.D3.max_dd) : '—' }}</b></div>
-      <a class="lnk" href="/nav/">完整净值曲线与口径 →</a>
+      <a class="lnk" :href="BASE + 'nav/'">完整净值曲线与口径 →</a>
     </div>
     <div class="panel sc">
       <div class="eyebrow">链路状态</div>
       <div class="st"><span>数据截至</span><b class="mono">{{ d ? d.as_of : '—' }} <i :class="d && d.health === 'ok' ? 'ok' : 'warn'">{{ d && d.health === 'ok' ? '✓' : '滞后' }}</i></b></div>
-      <div class="st"><span>站点更新</span><b class="mono">{{ d ? d.generated_at.slice(5, 16) : '—' }}</b></div>
+      <div class="st"><span>站点更新</span><b class="mono">{{ d ? d.generated_at.slice(5, 16).replace('T', ' ') : '—' }}</b></div>
       <div class="st"><span>发布口径</span><b>实时（收盘后发布）</b></div>
     </div>
     <div class="panel sc">
       <div class="eyebrow">快捷入口</div>
-      <a class="lnk" href="/signals/">全部历史信号 →</a><br />
-      <a class="lnk" href="/archive/">研究档案 →</a>
+      <a class="lnk" :href="BASE + 'signals/'">全部历史信号 →</a><br />
+      <a class="lnk" :href="BASE + 'archive/'">研究档案 →</a>
     </div>
   </div>
 </template>
 <script setup lang="ts">
+const BASE = import.meta.env.BASE_URL
 import { onMounted, ref } from 'vue'
 const d = ref<any>(null)
 const nav = ref<any>(null)
