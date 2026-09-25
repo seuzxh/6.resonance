@@ -41,7 +41,7 @@ jobs:
           # diagrams/ 是 public 直通的独立交互图，保持原路径不动
           shopt -s nullglob
           for f in *.html docs/*.html; do
-            case "$f" in index.html|404.html) continue ;; esac
+            case "${f##*/}" in index.html|404.html) continue ;; esac
             d="${f%.html}"; mkdir -p "$d"; mv "$f" "$d/index.html"
           done
           find . -maxdepth 2 \( -type d -o -name '*.html' \) | sort | head -20
