@@ -26,3 +26,8 @@ logs/
 .ipynb_checkpoints/
 /tmp/
 .worktrees/
+
+# site build artifacts
+site/node_modules/
+site/.vitepress/dist/
+site/.vitepress/cache/

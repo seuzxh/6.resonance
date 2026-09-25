@@ -39,7 +39,9 @@ POOL13 = ["883957.TI", "700050.TI", "000680.SH", "399006.SZ", "000688.SH", "0000
 # C1 = 固定深证成指锚（单锚冠军对照）；D3 = V4.3 生产口径（三锚动选，
 # docs/v43-best-plan.md，2026-09-23 用户决策）
 TRACKS = {"D3": list(config.V43_ANCHOR_POOL),
-          "A9": list(config.V41_BROAD_POOL), "B13": POOL13, "C1": ["399001.SZ"]}
+          "A9": list(config.V41_BROAD_POOL), "B13": POOL13, "C1": ["399001.SZ"],
+          # 分净值对照轨（站点净值页用，参数同冻结值，纯加法不影响预注册四轨）
+          "G2": ["399303.SZ"], "K5": ["000688.SH"]}
 NO_HF_COVER = {"700050.TI"}
 # 冻结参数（oos-validation-design §二；改任何一项实验作废）
 FROZEN = V3Params(topk=3, daily_top=5, hl_source="leader", cost_bp=10.0)
@@ -224,6 +226,16 @@ def main() -> int:
         else:
             print("尚无交易动作（空仓等待信号）")
         print(f"[OK] 落盘 {OUT_DIR}/trades_{track}.csv / nav_{track}.csv")
+    # 发布层：产物 → site/public/data/*.json → git push（失败不影响已落盘信号）
+    try:
+        from work.publish_site import main as publish_main
+        rc = publish_main([])
+        if rc != 0:
+            print("[publish] 发布未完成（站点停在上一版），信号数据本身已落盘")
+            return 1
+    except Exception as ex:  # noqa: BLE001
+        print(f"[publish] 异常：{ex}（站点停在上一版）")
+        return 1
     return 0
 
 

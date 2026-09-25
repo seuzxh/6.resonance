@@ -1,0 +1,63 @@
+/* ===== 设计令牌（与 design/mockup.html 同源） ===== */
+:root {
+  --bg: #0B1523;
+  --bg-stage: #060B12;
+  --panel: #101E31;
+  --panel-2: #0E1A2B;
+  --line: #1C3149;
+  --line-soft: #16273D;
+  --text-hi: #E9EFF7;
+  --text-mid: #93A7C0;
+  --text-low: #5E7391;
+  --up: #FF5449;      /* A股红涨 */
+  --down: #00B578;    /* A股绿跌 */
+  --gold: #E8C06B;    /* 共振金：只给共振标记与 D3 曲线 */
+  --gold-dim: rgba(232, 192, 107, 0.16);
+  --amber: #E9A23B;   /* 系统琥珀：只给降级/告警 */
+  --amber-dim: rgba(233, 162, 59, 0.14);
+  --font-display: 'Songti SC', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+}
+
+/* ===== VitePress 主题变量映射到我们的墨蓝仪器盘 ===== */
+:root {
+  --vp-c-bg: var(--bg);
+  --vp-c-bg-alt: var(--panel);
+  --vp-c-bg-elv: var(--panel);
+  --vp-c-text-1: var(--text-hi);
+  --vp-c-text-2: var(--text-mid);
+  --vp-c-text-3: var(--text-low);
+  --vp-c-border: var(--line);
+  --vp-c-divider: var(--line-soft);
+  --vp-c-brand-1: var(--gold);
+  --vp-c-brand-2: #d9b164;
+  --vp-c-brand-3: #b8934e;
+  --vp-nav-height: 52px;
+  --vp-font-family: -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --vp-font-family-mono: var(--font-mono);
+}
+.VPNavBar { background: var(--bg) !important; }
+.VPNavBarTitle .title { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.04em; }
+.VPContent { background: var(--bg) !important; padding-bottom: 72px; /* 手机底部 tab 让位 */ }
+
+/* ===== 通用 ===== */
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.up { color: var(--up); }
+.down { color: var(--down); }
+.page-wrap { max-width: 1180px; margin: 0 auto; padding: 16px 16px 40px; }
+.panel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+.eyebrow { font-size: 12px; color: var(--text-low); letter-spacing: 0.18em; }
+a { color: var(--gold); }
+
+/* 手机隐藏顶部 nav（底部 TabBar 接管），桌面反之 */
+.TabBar { display: flex; }
+@media (max-width: 899px) {
+  .VPNav { display: none !important; }
+  .VPContent { padding-top: 0 !important; padding-bottom: 76px; }
+  .VPContent .container { padding: 0 !important; max-width: 100% !important; }
+}
+@media (min-width: 900px) {
+  .TabBar { display: none !important; }
+}
