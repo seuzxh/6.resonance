@@ -258,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     msg = f"site-data: as of {payload['recent.json']['as_of']}"
     subprocess.run(["git", "commit", "-m", msg], cwd=root, check=True)
-    r = subprocess.run(["git", "push", "origin", "HEAD", "HEAD:master"], cwd=root)
+    r = subprocess.run(["git", "push", "origin", "HEAD:master"], cwd=root)
     if r.returncode != 0:
         print("[publish] push 失败（本地已 commit，网络恢复后手动 git push）")
         return 1
