@@ -76,13 +76,6 @@ const pct = (v: number | null) => v == null ? '—' : (v >= 0 ? '+' : '−') + M
 .track em { margin-left: auto; font-style: normal; }
 .note { margin: 4px 0 8px; padding: 7px 9px; border-radius: 6px; background: var(--amber-dim); border: 1px solid rgba(233, 162, 59, 0.3); color: var(--amber); font-size: 12px; }
 
-.sc { padding: 14px; margin-bottom: 14px; }
-.st { display: flex; align-items: baseline; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line-soft); font-size: 12px; }
-.st:first-of-type { border-top: none; }
-.st span { color: var(--text-mid); }
-.st b { font-size: 15px; font-weight: 600; }
-.st .ok { color: var(--down); font-style: normal; } .st .warn { color: var(--amber); font-style: normal; }
-.lnk { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--gold); text-decoration: none; }
 @media (min-width: 900px) {
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
   .card { margin-bottom: 0; }

@@ -159,20 +159,7 @@ def replay_display(track: str, end_date: str) -> dict:
 
 
 def _holdings_from_trades(tr: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp):
-    """OOS 官方段持仓推导：空仓起步，按 entry/exit/switch 事件推进。"""
-    rows, cur = [], None
-    for _, r in tr.iterrows():
-        d = pd.Timestamp(r["date"])
-        if cur:
-            rows.append([cur[0], cur[1], cur[2]])
-        to = r["to"] if isinstance(r["to"], str) else ""
-        if r["type"] == "entry" or (r["type"] == "switch" and to):
-            cur = [d, to.replace(".TI", ""), None]  # name 后补
-            cur[2] = to
-        elif r["type"] in ("exit", "stop"):
-            cur = None
-    if cur:
-        rows.append(cur)
+    """OOS 官方段持仓推导：空仓起步，事件推进，按日历日展开（跳过周末）。"""
     # 展开为逐日：cur 期间每天持有
     hold_days, cur = [], None
     events = list(tr.itertuples(index=False))
@@ -225,7 +212,7 @@ def build_nav(names: dict, as_of: str) -> dict:
             else:
                 nav = nav_in                                   # 样本外=连续展示口径
         else:
-            nav, scale = official, 1.0
+            nav = official
         pts = [[str(d.date()), round(float(v), 4)] for d, v in nav.items()]
         events, seen = [], set()
         if tr_in is not None and len(tr_in):
