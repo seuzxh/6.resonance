@@ -25,6 +25,15 @@ const META = {
   'gpt-session-summary.md': ['起源纪要（GPT 会话）', '策略规则的逐条确认记录与项目迁移上下文'],
 }
 
+// 交互图登记（图库页生成用；文件名 → [标题, 说明]）
+const DIAGRAMS = {
+  'architecture.html': ['系统架构', '指数锚共振策略的整体架构：数据层 → 信号层 → 执行层 → 发布层'],
+  'oos-daily-workflow.html': ['OOS 每日运行流程', '无人值守 runner 的三道数据闸门与 15:05 盘中硬闸'],
+  'signal-lifecycle-sequence.html': ['信号生命周期时序', 'T 日信号计算 → T+1 收盘成交 → 持仓检查的完整时序'],
+  'data-pipeline-dataflow.html': ['数据流', 'iFinD/qlib 双链路采集、降级与修复路径'],
+  'holding-lifecycle.html': ['持仓状态机', '建仓/续持/换仓/止损/退出现金的状态迁移'],
+}
+
 await rm(docsDst, { recursive: true, force: true })
 await mkdir(docsDst, { recursive: true })
 if (existsSync(diagDst)) await rm(diagDst, { recursive: true, force: true })
@@ -40,7 +49,10 @@ for (const f of files) {
     '$1（仓库内路径：$2）')
   await writeFile(join(docsDst, f), text, 'utf8')
 }
-await cp(join(docsSrc, 'diagrams'), diagDst, { recursive: true })
+// 只发布交互 HTML 本体（src/ 的 JSON 规格源文件不入公开产物）
+for (const f of (await readdir(join(docsSrc, 'diagrams')))) {
+  if (f.endsWith('.html')) await cp(join(docsSrc, 'diagrams', f), join(diagDst, f))
+}
 
 // 文档索引页（列表由 META 驱动，未登记文档以文件名兜底）
 const items = files
@@ -56,9 +68,38 @@ title: 文档
 # 项目文档
 
 方法论文档与实验记录，构建期自动同步自仓库 \`docs/\` 目录（EdgeOne 与
-GitHub Pages 双通道同源）。
+GitHub Pages 双通道同源）。交互式架构/流程图见[图表页](diagrams.md)。
+
+## [交互图表（架构 / 流程 / 时序 / 数据流 / 状态机）](diagrams.md)
+
+docs/diagrams/ 下五张交互式 HTML 的内嵌图库。
 
 ${items}
 `
 await writeFile(join(docsDst, 'index.md'), index, 'utf8')
-console.log(`[sync-docs] ${files.length} md + diagrams → site/docs, site/public/diagrams`)
+
+// 图库页：iframe 内嵌交互图（lazy）+ 新窗口打开兜底
+const gallery = `---
+title: 图表
+---
+
+# 交互式图表
+
+架构图、流程图、时序图与状态机（archify 生成，构建期同步自
+\`docs/diagrams/\`）。以下为内嵌预览，也可新窗口全屏查看。
+
+${Object.entries(DIAGRAMS)
+  .map(([f, [title, desc]]) => `## ${title}
+
+${desc}
+
+<iframe src="/diagrams/${f}" loading="lazy" title="${title}"
+  style="width:100%;height:640px;border:1px solid rgba(128,128,128,.35);border-radius:8px;background:#fff">
+</iframe>
+
+[新窗口打开 ↗](/diagrams/${f})
+`)
+  .join('\n')}
+`
+await writeFile(join(docsDst, 'diagrams.md'), gallery, 'utf8')
+console.log(`[sync-docs] ${files.length} md + ${Object.keys(DIAGRAMS).length} diagrams → site/docs, site/public/diagrams`)

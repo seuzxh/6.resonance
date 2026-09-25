@@ -21,6 +21,7 @@ export default defineConfig({
           { text: 'OOS 验证设计', link: '/docs/oos-validation-design/' },
           { text: '实验手册', link: '/docs/experiment-playbook/' },
           { text: '资金流闸门探索', link: '/docs/moneyflow-gate-plan/' },
+          { text: '交互图表', link: '/docs/diagrams/' },
           { text: '起源纪要', link: '/docs/gpt-session-summary/' },
           { text: '全部文档', link: '/docs/' },
         ],
