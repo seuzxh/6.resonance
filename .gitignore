@@ -20,6 +20,7 @@ data/*.csv
 outputs/**/*.csv
 outputs/**/*.html
 outputs/**/*.json
+outputs/**/*.parquet
 
 # logs & tmp
 logs/
