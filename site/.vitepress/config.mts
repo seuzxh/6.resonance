@@ -1,4 +1,18 @@
 import { defineConfig } from 'vitepress'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// docs/ 侧边栏：读 sync-docs.mjs 生成的 manifest（npm 前置脚本保证存在）
+const siteDir = dirname(fileURLToPath(import.meta.url))
+let docsSidebar: any[] = []
+try {
+  docsSidebar = JSON.parse(
+    readFileSync(join(siteDir, 'docs-manifest.json'), 'utf8'),
+  ).map((g: any) => ({ text: g.group, collapsed: false, items: g.items }))
+} catch {
+  docsSidebar = [] // 未同步时空侧边栏，不阻塞构建
+}
 
 export default defineConfig({
   // 子路径部署开关：GitHub Pages 项目页传 VITEPRESS_BASE=/6.resonance/；
@@ -9,6 +23,7 @@ export default defineConfig({
   appearance: false,          // 仪器盘固定暗色，不提供切换
   cleanUrls: true,
   head: [['meta', { name: 'viewport', content: 'width=device-width, initial-scale=1' }]],
+  sidebar: { '/docs/': docsSidebar },
   themeConfig: {
     nav: [
       { text: '首页', link: '/' },

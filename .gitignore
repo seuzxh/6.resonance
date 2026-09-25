@@ -36,3 +36,4 @@ site/.vitepress/cache/
 # 构建期同步产物（site/scripts/sync-docs.mjs 生成，不入库）
 site/docs/
 site/public/diagrams/
+site/.vitepress/docs-manifest.json
