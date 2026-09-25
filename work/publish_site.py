@@ -203,8 +203,6 @@ def build_signals(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> di
 
 def build_archive() -> dict:
     root = Path(__file__).resolve().parents[1]
-    branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                            capture_output=True, text=True, cwd=root).stdout.strip()
     items = []
     for f in sorted((root / "docs").glob("*.md")):
         date = subprocess.run(["git", "log", "-1", "--format=%as", "--", str(f)],
@@ -217,7 +215,7 @@ def build_archive() -> dict:
         if not title:
             continue
         items.append({"date": date, "title": title,
-                      "url": f"https://github.com/seuzxh/6.resonance/blob/{branch}/docs/{f.name}"})
+                      "url": f"https://github.com/seuzxh/6.resonance/blob/master/docs/{f.name}"})
     items.sort(key=lambda x: x["date"], reverse=True)
     return {"version": 1, "items": items[:12]}
 
@@ -260,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     msg = f"site-data: as of {payload['recent.json']['as_of']}"
     subprocess.run(["git", "commit", "-m", msg], cwd=root, check=True)
-    r = subprocess.run(["git", "push", "origin", "HEAD"], cwd=root)
+    r = subprocess.run(["git", "push", "origin", "HEAD", "HEAD:master"], cwd=root)
     if r.returncode != 0:
         print("[publish] push 失败（本地已 commit，网络恢复后手动 git push）")
         return 1
