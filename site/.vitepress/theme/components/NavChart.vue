@@ -65,7 +65,8 @@ function render() {
     type: 'line' as const,
     showSymbol: false,
     data: sliced(s).map((p: any[]) => p[1]),
-    lineStyle: { width: s.track === 'D3' ? 3 : 1.6, color: COLORS[s.track] || '#93A7C0' },
+    lineStyle: { width: s.track === 'D3' ? 3.2 : 1.6, color: COLORS[s.track] || '#93A7C0' },
+    ...(s.track !== 'D3' ? { lineStyle: { width: 1.6, color: COLORS[s.track] || '#93A7C0', opacity: 0.65 } } : {}),
     itemStyle: { color: COLORS[s.track] || '#93A7C0' },
     emphasis: { focus: 'series' as const },
     ...(s.track === 'D3' && showOos ? {
@@ -126,7 +127,7 @@ function render() {
       data: dates,
       boundaryGap: false,
       axisLine: { lineStyle: { color: '#1C3149' } },
-      axisLabel: { color: '#5E7391', fontSize: 10 },
+      axisLabel: { color: '#7E93AF', fontSize: 11 },
       axisTick: { show: false },
     },
     yAxis: {
@@ -145,7 +146,7 @@ watch(range, render)
 <style scoped>
 .tt { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.06em; margin: 6px 0 4px; }
 .sub { font-size: 12px; color: var(--text-low); margin-bottom: 12px; line-height: 1.6; }
-.stats { display: flex; margin-bottom: 12px; }
+.stats { display: flex; margin-bottom: 18px; }
 .stats > div { flex: 1; padding: 10px 12px; }
 .stats > div + div { border-left: 1px solid var(--line-soft); }
 .stats span { display: block; font-size: 11px; color: var(--text-low); letter-spacing: 0.08em; }

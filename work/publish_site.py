@@ -106,14 +106,36 @@ def validate(today: pd.Timestamp) -> tuple[str, pd.Series]:
     return str(as_of.date()), d3
 
 
+def _stitched(tr: str, as_of: pd.Timestamp) -> pd.Series:
+    """拼接展示口径净值：样本内 replay + 官方 OOS×样本内末值缩放；无官方文件则连续 replay。
+
+    与 build_nav 曲线同口径（近五日卡片/天数窗口不再受官方 OOS 落盘起点限制）。"""
+    f = OUT / f"nav_{tr}.csv"
+    official = _nav(tr) if f.exists() else None
+    end_in = str((official.index[0] - pd.Timedelta(days=1)).date()) if official is not None else str(as_of.date())
+    nav_in = replay_display(tr, end_in)["nav_curve"]
+    if official is not None:
+        return pd.concat([nav_in, official * float(nav_in.iloc[-1])])
+    return nav_in
+
+
+def _trades_stitched(tr: str, cutoff: pd.Timestamp) -> pd.DataFrame:
+    """拼接展示口径事件：replay（至 OOS 前一日）+ 官方 OOS；无官方文件则连续 replay。"""
+    f_tr = OUT / f"trades_{tr}.csv"
+    if f_tr.exists():
+        prev = str((_nav(tr).index[0] - pd.Timedelta(days=1)).date())
+        return pd.concat([replay_display(tr, prev)["trades"], _trades(tr)], ignore_index=True)
+    return replay_display(tr, cutoff)["trades"]
+
+
 def build_recent(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dict:
-    d3 = _nav("D3")
+    d3 = _stitched("D3", cutoff)
     days_idx = [d for d in d3.index if d <= cutoff][-5:]
     days = []
     for day in days_idx:
         sigs = []
         for tr in SHOW_TRACKS:
-            for _, r in _trades(tr).iterrows():
+            for _, r in _trades_stitched(tr, cutoff).iterrows():
                 if r["date"] != day:
                     continue
                 to = r["to"] if isinstance(r["to"], str) else ""
@@ -123,10 +145,7 @@ def build_recent(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dic
                              "meta": f"{ACT.get(r['type'], r['type'])} @{r['price']:.2f} · {TRACK_NAMES[tr]}"})
         tracks = []
         for tr in NAV_TRACKS:
-            f = OUT / f"nav_{tr}.csv"
-            if not f.exists():
-                continue
-            s = _nav(tr)
+            s = _stitched(tr, cutoff)
             if day not in s.index:
                 continue
             i = s.index.get_loc(day)
@@ -138,7 +157,7 @@ def build_recent(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dic
     last = days_idx[-1]
     aligned = sum(1 for a in days[-1]["anchors"] if a["state"] == "多")
     return {"version": 1, "as_of": str(last.date()),
-            "generated_at": pd.Timestamp.now().strftime("%Y-%m-%dT%H:%M"),
+            "generated_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
             "health": "ok" if (pd.Timestamp.now().normalize() - last).days <= 4 else "stale",
             "align": {"aligned": aligned, "total": len(days[-1]["anchors"])},
             "days": days[::-1]}   # 最新在前
@@ -305,6 +324,7 @@ def build_signals(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> di
                          "exit": round(last_px, 2),
                          "ret": round(last_px / open_pos["price"] - 1, 4),
                          "hold": int((cutoff - open_pos["date"]).days)})
+    rows.sort(key=lambda r: r["date"], reverse=True)   # 最新在前（compact 取头 N 条=真最新）
     return {"version": 1, "as_of": str(cutoff.date()), "rows": rows}
 
 

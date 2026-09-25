@@ -9,7 +9,7 @@
         <button class="head" :aria-expanded="open === i" @click="open = open === i ? -1 : i">
           <span class="date"><b class="mono">{{ day.date.slice(5) }}</b><i class="wd">{{ day.wd }}</i></span>
           <span class="chips">
-            <span v-for="t in day.tracks.filter(t => SHOW.includes(t.track))" :key="t.track"
+            <span v-for="t in day.tracks.filter(t => t.track.startsWith('D3'))" :key="t.track"
                   class="chip mono" :class="t.ret >= 0 ? 'up' : 'down'">{{ t.track }} {{ pct(t.ret) }}</span>
           </span>
           <i class="caret" />
@@ -25,7 +25,7 @@
           </div>
           <div class="row"><span class="k">净值</span>
             <span class="v">
-              <span v-for="t in day.tracks.filter(t => SHOW.includes(t.track))" :key="t.track" class="track">
+              <span v-for="t in day.tracks" :key="t.track" class="track">
                 <i>{{ t.track }}</i><em class="mono">{{ t.nav.toFixed(3) }} <b :class="t.ret >= 0 ? 'up' : 'down'">{{ pct(t.ret) }}</b></em>
               </span>
             </span>
@@ -38,7 +38,7 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-const SHOW = ['D3']   // 卡片头只显 D3；明细行显示全部轨
+// 卡片头 chip 只显 D3（轨名以 D3 开头匹配）；明细净值行显示全部轨
 const d = ref<any>(null)
 const open = ref(0)
 const days = computed(() => (d.value ? d.value.days : []))

@@ -44,7 +44,7 @@
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .up { color: var(--up); }
 .down { color: var(--down); }
-.page-wrap { max-width: 1180px; margin: 0 auto; padding: 16px 16px 40px; }
+.page-wrap { max-width: 1180px; margin: 0 auto; padding: 10px 16px 40px; }
 .panel {
   background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
 }

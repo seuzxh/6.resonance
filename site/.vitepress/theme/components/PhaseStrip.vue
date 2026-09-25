@@ -43,7 +43,7 @@ function sparkPts(arr: number[]): string {
 .hint.show { display: block; }
 .eyebrow-row .eyebrow { cursor: help; }
 .row { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 4px 0 16px; border-top: 1px solid var(--line-soft); position: relative; }
-.row.is-res { background: linear-gradient(90deg, var(--gold-dim), transparent 55%); }
+.row.is-res { background: linear-gradient(90deg, var(--gold-dim), transparent 55%); box-shadow: inset 3px 0 0 var(--gold); }
 .name { width: 74px; flex: none; font-size: 13px; }
 .spark { flex: 1; height: 22px; }
 .spark polyline { fill: none; stroke: #7e93af; stroke-width: 1.4; }
@@ -56,7 +56,7 @@ function sparkPts(arr: number[]): string {
   .rows.res::before { content: ''; position: absolute; left: 10px; right: 10px; top: 0; height: 2px; background: var(--gold); }
   .rows { position: relative; }
   .row { flex-direction: unset; display: grid; height: auto; padding: 13px 12px 12px 16px; gap: 6px 8px; grid-template-columns: 1fr auto; grid-template-areas: 'name state' 'spark spark' 'chg chg'; border: 1px solid var(--line-soft); border-radius: 8px; }
-  .row.is-res { box-shadow: inset 0 2px 0 0 var(--gold); background: linear-gradient(180deg, var(--gold-dim), transparent 60%); }
+  .row.is-res { box-shadow: inset 0 2px 0 0 var(--gold), inset 3px 0 0 var(--gold); background: linear-gradient(180deg, var(--gold-dim), transparent 60%); }
   .name { grid-area: name; width: auto; font-size: 14px; }
   .state { grid-area: state; justify-self: end; }
   .spark { grid-area: spark; height: 38px; width: 100%; flex: none; }

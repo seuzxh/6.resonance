@@ -59,7 +59,7 @@ table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th { background: var(--panel-2); color: var(--text-low); font-weight: 500; text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
 td b { font-weight: 600; }
-td i { font-style: normal; color: var(--text-mid); }
+td i { font-style: normal; color: #A8BAD1; }
 .num { text-align: right; }
 .buy { color: var(--up); } .sell { color: var(--down); } .hold { color: #cbb37e; }
 .empty { color: var(--text-low); text-align: center; padding: 24px 0; }
