@@ -61,7 +61,7 @@ td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); white-space: 
 td b { font-weight: 600; }
 td i { font-style: normal; color: var(--text-mid); }
 .num { text-align: right; }
-.buy { color: var(--up); } .sell { color: var(--down); } .hold { color: var(--text-mid); }
+.buy { color: var(--up); } .sell { color: var(--down); } .hold { color: #cbb37e; }
 .empty { color: var(--text-low); text-align: center; padding: 24px 0; }
 .lg { display: none; }
 .page-wrap.compact .lg { display: none !important; }

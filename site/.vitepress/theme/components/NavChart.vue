@@ -113,9 +113,10 @@ function render() {
           const ev = evMap.get(`${tr}|${date}`)
           const h = holdMap.get(`${tr}|${date}`)
           const nm = tr === 'D3' ? 'D3' : s.name.replace('锚', '').replace('三锚动选（生产）', '')
-          if (ev) html += `<br/><span style="color:#E8C06B">${nm} ${ev[0]}</span> ${ev[1]} ${ev[2]}`
-          else if (h) html += `<br/><span style="color:#5E7391">${nm} 持有</span> ${h}`
-          else html += `<br/><span style="color:#3D4F66">${nm} 空仓</span>`
+          const lc = COLORS[tr] || '#93A7C0'
+          if (ev) html += `<br/><span style="color:${lc}">●</span> <span style="color:#E8C06B">${nm} ${ev[0]}</span> ${ev[1]} ${ev[2]}`
+          else if (h) html += `<br/><span style="color:${lc}">●</span> <span style="color:${lc}">${nm} 持有</span> ${h}`
+          else html += `<br/><span style="color:${lc};opacity:.45">○</span> <span style="color:#93A7C0">${nm} 空仓</span>`
         }
         return html
       },
