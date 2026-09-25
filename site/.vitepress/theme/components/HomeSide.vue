@@ -11,7 +11,7 @@
       <div class="eyebrow">链路状态</div>
       <div class="st"><span>数据截至</span><b class="mono">{{ d ? d.as_of : '—' }} <i :class="d && d.health === 'ok' ? 'ok' : 'warn'">{{ d && d.health === 'ok' ? '✓' : '滞后' }}</i></b></div>
       <div class="st"><span>站点更新</span><b class="mono">{{ d ? d.generated_at.slice(5, 16) : '—' }}</b></div>
-      <div class="st"><span>发布口径</span><b>T-1（当日走推送）</b></div>
+      <div class="st"><span>发布口径</span><b>实时（收盘后发布）</b></div>
     </div>
     <div class="panel sc">
       <div class="eyebrow">快捷入口</div>

@@ -11,7 +11,7 @@
     archive.json  docs/*.md 档案索引（链接到 GitHub 原文）
 
 纪律：校验不过 → 一个文件都不写、退出 1（站点停在上一版）；
-      PUBLISH_LAG=1 → 站点只展示到 T-1，当日明细走推送层。
+      PUBLISH_LAG=0 → 当日信号实时公开（2026-09-25 起，用户决策）。
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from resonance import config  # noqa: E402
 
 OUT = config.OUTPUTS_DIR / "oos"
 SITE_DATA = Path(__file__).resolve().parents[1] / "site" / "public" / "data"
-PUBLISH_LAG = 1                     # T-1 公开；改 0 即实时公开（一步切换）
+PUBLISH_LAG = 0                     # 实时公开（2026-09-25 用户反馈信号不可见，弃 T-1）
 NAV_START = "2026-01-01"            # 展示净值起点（样本内+样本外连续，图上标注 OOS 起点）
 SHOW_TRACKS = ("D3", "C1")          # 站点展示轨
 NAV_TRACKS = ("D3", "C1", "G2", "K5")  # 进净值图的轨（G2/K5 为三锚分净值对照）

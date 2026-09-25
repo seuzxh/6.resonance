@@ -3,7 +3,7 @@
     <div class="feed-col">
       <div class="feed-head">
         <span class="tt">近五日</span>
-        <span class="sub">T-1 口径发布 · 当日信号走推送 · 点卡片看明细</span>
+        <span class="sub">收盘后随 runner 发布 · 点卡片看当日明细</span>
       </div>
       <div class="cards"><article v-for="(day, i) in days" :key="day.date" class="card panel" :class="{ open: open === i }">
         <button class="head" :aria-expanded="open === i" @click="open = open === i ? -1 : i">
