@@ -55,7 +55,7 @@ function render() {
   const holdMap = new Map<string, string>()      // "track|date" -> 持仓名
   for (const s of nav.value.series) {
     for (const e of s.events ?? []) evMap.set(`${s.track}|${e[0]}`, [e[1], e[2], e[3]])
-    for (const h of s.holdings ?? []) holdMap.set(`${s.track}|${h[0]}`, h[2])
+    for (const h of s.holdings ?? []) holdMap.set(`${s.track}|${h[0]}`, `${h[1]} ${h[2]}`)   // 代码 名称
   }
   const oosStart: string = nav.value.oos_start || ''
   const showOos = oosStart && dates.includes(oosStart)
