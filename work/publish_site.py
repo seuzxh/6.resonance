@@ -29,6 +29,7 @@ from resonance import config  # noqa: E402
 OUT = config.OUTPUTS_DIR / "oos"
 SITE_DATA = Path(__file__).resolve().parents[1] / "site" / "public" / "data"
 PUBLISH_LAG = 1                     # T-1 公开；改 0 即实时公开（一步切换）
+NAV_START = "2026-01-01"            # 展示净值起点（样本内+样本外连续，图上标注 OOS 起点）
 SHOW_TRACKS = ("D3", "C1")          # 站点展示轨
 NAV_TRACKS = ("D3", "C1", "G2", "K5")  # 进净值图的轨（G2/K5 为三锚分净值对照）
 TRACK_NAMES = {
@@ -116,7 +117,9 @@ def build_recent(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dic
             for _, r in _trades(tr).iterrows():
                 if r["date"] != day:
                     continue
-                code = r["to"] or r["from"]
+                to = r["to"] if isinstance(r["to"], str) else ""
+                fr = r["from"] if isinstance(r["from"], str) else ""
+                code = to or fr
                 sigs.append({"code": code.replace(".TI", ""), "name": names.get(code, code),
                              "meta": f"{ACT.get(r['type'], r['type'])} @{r['price']:.2f} · {tr} 轨"})
         tracks = []
@@ -142,22 +145,121 @@ def build_recent(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dic
             "days": days[::-1]}   # 最新在前
 
 
-def build_nav() -> dict:
+def replay_display(track: str, end_date: str) -> dict:
+    """展示用净值重放：NAV_START 起全窗（读缓存，不触网、不动 OOS 官方落盘）。"""
+    from resonance.v3 import MinuteBarProvider, V3Backtester
+    from work import signal_daily as sd
+    close_all, concepts = sd.load_wide()
+    m5 = pd.read_parquet(config.CACHE_DIR / "minute5_bars.parquet")
+    m5["datetime"] = pd.to_datetime(m5["datetime"])
+    prov = MinuteBarProvider(m5.pivot(index="datetime", columns="symbol", values="close").sort_index())
+    bt = V3Backtester(close_all, concepts, broad_codes=sd.TRACKS[track],
+                      params=sd.FROZEN, minute_bars_provider=prov)
+    return bt.run(NAV_START, end_date)
+
+
+def _holdings_from_trades(tr: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp):
+    """OOS 官方段持仓推导：空仓起步，按 entry/exit/switch 事件推进。"""
+    rows, cur = [], None
+    for _, r in tr.iterrows():
+        d = pd.Timestamp(r["date"])
+        if cur:
+            rows.append([cur[0], cur[1], cur[2]])
+        to = r["to"] if isinstance(r["to"], str) else ""
+        if r["type"] == "entry" or (r["type"] == "switch" and to):
+            cur = [d, to.replace(".TI", ""), None]  # name 后补
+            cur[2] = to
+        elif r["type"] in ("exit", "stop"):
+            cur = None
+    if cur:
+        rows.append(cur)
+    # 展开为逐日：cur 期间每天持有
+    hold_days, cur = [], None
+    events = list(tr.itertuples(index=False))
+    def cur_at(day):
+        hold = None
+        for r in events:
+            if pd.Timestamp(r.date) > day:
+                break
+            to = r.to if isinstance(r.to, str) else ""
+            if r.type == "entry" or (r.type == "switch" and to):
+                hold = to
+            elif r.type in ("exit", "stop"):
+                hold = None
+        return hold
+    for d in pd.date_range(start, end):
+        if d.weekday() >= 5:
+            continue
+        h = cur_at(d)
+        if h:
+            hold_days.append([str(d.date()), h.replace(".TI", ""), h])
+    return hold_days
+
+
+def build_nav(names: dict, as_of: str) -> dict:
+    """净值序列＝样本内展示重放（NAV_START→OOS 前一日）＋ 官方 OOS 净值缩放拼接。
+
+    口径纪律：样本外段与 outputs/oos 官方文件逐点一致（空仓起步语义），
+    仅按样本内末值缩放纵轴衔接；events/holdings 同样拼接，供曲线 tooltip。
+    """
     from resonance.backtest import perf_stats
     series, stats = [], {}
     for tr in NAV_TRACKS:
         f = OUT / f"nav_{tr}.csv"
         if not f.exists():
             continue
-        s = _nav(tr)
-        series.append({"track": tr, "name": TRACK_NAMES[tr],
-                       "points": [[str(d.date()), round(float(v), 4)] for d, v in s.items()]})
+        official = _nav(tr)                     # OOS 官方（1.0 起，空仓起步）
+        prev_day = str((official.index[0] - pd.Timedelta(days=1)).date())
+        try:
+            out = replay_display(tr, prev_day)  # 样本内展示重放
+            nav_in = out["nav_curve"]
+            tr_in = out["trades"]
+            hold_in = out["holdings"]
+        except Exception as ex:  # noqa: BLE001
+            print(f"[publish] 警告：{tr} 展示重放失败（{str(ex)[:60]}），仅发布 OOS 窗")
+            nav_in, tr_in, hold_in = None, None, None
+        if nav_in is not None:
+            scale = float(nav_in.iloc[-1])
+            nav = pd.concat([nav_in, official * scale])
+        else:
+            nav, scale = official, 1.0
+        pts = [[str(d.date()), round(float(v), 4)] for d, v in nav.items()]
+        events, seen = [], set()
+        if tr_in is not None and len(tr_in):
+            for _, r in tr_in.iterrows():
+                to = r["to"] if isinstance(r["to"], str) else ""
+                fr = r["from"] if isinstance(r["from"], str) else ""
+                code = to or fr
+                k = (str(pd.Timestamp(r["date"]).date()), code)
+                if k not in seen:
+                    seen.add(k)
+                    events.append([k[0], ACT.get(r["type"], r["type"]),
+                                   code.replace(".TI", ""), names.get(code, code)])
+        for _, r in _trades(tr).iterrows():      # OOS 官方事件
+            to = r["to"] if isinstance(r["to"], str) else ""
+            fr = r["from"] if isinstance(r["from"], str) else ""
+            code = to or fr
+            events.append([str(pd.Timestamp(r["date"]).date()), ACT.get(r["type"], r["type"]),
+                           code.replace(".TI", ""), names.get(code, code)])
+        holdings = []
+        if hold_in is not None and len(hold_in):
+            for d, row in hold_in.iterrows():
+                h = row.get("holding")
+                if isinstance(h, str) and h:
+                    holdings.append([str(pd.Timestamp(d).date()), h.replace(".TI", ""), names.get(h, h)])
+        for d, code, raw in _holdings_from_trades(_trades(tr), official.index[0],
+                                                  pd.Timestamp(as_of)):
+            holdings.append([d, code, names.get(raw, raw)])
+        series.append({"track": tr, "name": TRACK_NAMES[tr], "points": pts,
+                       "events": events, "holdings": holdings})
         if tr == "D3":
-            st = perf_stats(s)
-            stats["D3"] = {"nav": round(float(s.iloc[-1]), 4),
+            st = perf_stats(nav)
+            stats["D3"] = {"nav": round(float(nav.iloc[-1]), 4),
                            "total_ret": round(float(st["total_return"]), 4),
                            "max_dd": round(float(st["max_drawdown"]), 4)}
-    return {"version": 1, "as_of": series[0]["points"][-1][0] if series else "", "stats": stats, "series": series}
+    return {"version": 1, "start": NAV_START, "oos_start": str(official.index[0].date()) if len(series) else "",
+            "as_of": series[0]["points"][-1][0] if series else "",
+            "stats": stats, "series": series}
 
 
 def build_signals(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dict:
@@ -236,7 +338,7 @@ def main(argv: list[str] | None = None) -> int:
     closes = _closes()
     payload = {
         "recent.json": build_recent(names, closes, cutoff),
-        "nav.json": build_nav(),
+        "nav.json": build_nav(names, as_of),
         "signals.json": build_signals(names, closes, cutoff),
         "archive.json": build_archive(),
     }
