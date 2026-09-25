@@ -407,6 +407,9 @@ class V3Backtester:
         params: V3Params | None = None,
         minute_prices=None,
         minute_bars_provider=None,
+        entry_gate: pd.Series | None = None,
+        exit_grid: pd.DataFrame | None = None,
+        post_rank=None,
     ):
         self.close = close_all
         self.rets = close_all.pct_change()
@@ -428,6 +431,22 @@ class V3Backtester:
         self.mbp = minute_bars_provider
         if self.p.daily_top > 0:
             assert self.mbp is not None, "daily_top>0（V4.1 分钟重排）需要 minute_bars_provider"
+        # 研究钩子（moneyflow-gate，docs/moneyflow-gate-plan.md）：entry_gate 为
+        # 日期→bool 序列；False 的空仓日不产生入场信号（soft gate：不影响持仓
+        # 检查/换仓/止损）。日期不在索引 → 直通并计 gate_missing_days。
+        # exit_grid 为 日期×概念 bool 宽表（R2 hard gate）：持仓检查日 True →
+        # 退至现金（reason=flow_exit）；NaN/缺失 → 不触发。
+        # post_rank(final_ranking, date) → ranking（R3 选择面钩子）：对最终榜
+        # 做稳定重排/过滤，topk 缓冲与入场决策作用于其输出；None=不改。
+        self.exit_grid = exit_grid
+        self.post_rank = post_rank
+        self._gate_idx: set | None = None
+        self._gate_blocked: set | None = None
+        if entry_gate is not None:
+            idx = pd.DatetimeIndex(entry_gate.index).normalize()
+            self._gate_idx = set(idx)
+            self._gate_blocked = {d for d, v in zip(idx, entry_gate.to_numpy())
+                                  if not bool(v)}
         self.sig = V3Signals(close_all, concepts, self.broad, allA_code, self.p)
 
     def _final_ranking(self, i: int, date, st: dict) -> pd.DataFrame:
@@ -489,6 +508,7 @@ class V3Backtester:
             "check_days": 0, "gate_fail_days": 0, "no_leader_days": 0,
             "flat_days": 0, "held_days": 0, "signal_days": 0,
             "degraded_days": 0, "intraday_exits": 0,
+            "entry_blocked_days": 0, "gate_missing_days": 0,
             "leaders": {}, "half_lives": {},
         }
         close_cols = {c: j for j, c in enumerate(self.close.columns)}
@@ -533,6 +553,7 @@ class V3Backtester:
                 trades.append({"date": date,
                                "type": "stop" if act["reason"] == "stop" else "exit",
                                "from": act["from"], "to": None,
+                               "reason": act.get("reason"),
                                "price": px, "nav": nav})
                 st["exits"] += 1
                 holding, entry_px, exec_i = None, None, None
@@ -607,22 +628,48 @@ class V3Backtester:
                     elif do_rank:
                         st["check_days"] += 1
                         record_info(i, date)
-                        st["signal_days"] += 1
-                        ranking = self._final_ranking(i, date, st)
-                        if ranking.empty:
+                        flow_exit = False
+                        if self.exit_grid is not None:
+                            d = pd.Timestamp(date).normalize()
+                            if d in self.exit_grid.index and holding in self.exit_grid.columns:
+                                v = self.exit_grid.at[d, holding]
+                                flow_exit = bool(v) if pd.notna(v) else False
+                        if flow_exit:
+                            st["flow_exits"] = st.get("flow_exits", 0) + 1
                             pending = {"type": "sell", "from": holding,
-                                       "reason": "exit", "signal_date": date}
+                                       "reason": "flow_exit", "signal_date": date}
                         else:
-                            top = list(ranking["concept"].head(p.topk))
-                            if holding not in top:
-                                pending = {"type": "switch", "from": holding,
-                                           "to": top[0], "signal_date": date}
+                            st["signal_days"] += 1
+                            ranking = self._final_ranking(i, date, st)
+                            if self.post_rank is not None and not ranking.empty:
+                                ranking = self.post_rank(ranking, date)
+                            if ranking.empty:
+                                pending = {"type": "sell", "from": holding,
+                                           "reason": "exit", "signal_date": date}
+                            else:
+                                top = list(ranking["concept"].head(p.topk))
+                                if holding not in top:
+                                    pending = {"type": "switch", "from": holding,
+                                               "to": top[0], "signal_date": date}
                 elif i > entry_block_until and not defense_on:
                     record_info(i, date)
-                    st["signal_days"] += 1
-                    ranking = self._final_ranking(i, date, st)
-                    if not ranking.empty:
-                        pending = {"type": "buy", "code": ranking["concept"].iloc[0]}
+                    gate_ok = True
+                    if self._gate_blocked is not None:
+                        d = pd.Timestamp(date).normalize()
+                        if d in self._gate_idx:
+                            if d in self._gate_blocked:
+                                gate_ok = False
+                        else:
+                            st["gate_missing_days"] += 1
+                    if not gate_ok:
+                        st["entry_blocked_days"] += 1
+                    else:
+                        st["signal_days"] += 1
+                        ranking = self._final_ranking(i, date, st)
+                        if self.post_rank is not None and not ranking.empty:
+                            ranking = self.post_rank(ranking, date)
+                        if not ranking.empty:
+                            pending = {"type": "buy", "code": ranking["concept"].iloc[0]}
                 if p.exec_lag == 0 and pending is not None:
                     exec_pending(i, date)
 

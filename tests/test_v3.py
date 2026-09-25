@@ -13,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import math
 
+import numpy as np
+
 import pandas as pd
 import pytest
 
@@ -486,3 +488,82 @@ def test_window_span_cross_day():
     assert prov.window_span("Y", pd.Timestamp(days[1]), 96).empty   # Y 次日缺半日
     w48 = prov.window_span("X", pd.Timestamp(days[1]), 48)
     assert len(w48) == 48 and w48.index[0].date() == pd.Timestamp(days[1]).date()
+
+
+# --------------------------------------- entry_gate 研究钩子（moneyflow-gate）--
+def test_entry_gate_blocks_entries_soft():
+    """全 False 闸门：无入场（nav 恒 1）；持仓侧不受影响由 soft 语义保证。"""
+    close = mk_close({"LDR": [0.01] * 12 + [0.01], "C_GOOD": [0.01]}, 14)
+    gate = pd.Series(False, index=close.index)
+    bt = V3Backtester(close, CONCEPTS, broad_codes=BROAD, allA_code="ALLA",
+                      params=V3Params(), entry_gate=gate)
+    out = bt.run(close.index[11])
+    assert out["stats"]["entries"] == 0
+    assert out["stats"]["entry_blocked_days"] > 0
+    assert out["stats"]["gate_missing_days"] == 0
+    assert (out["nav_curve"] == 1.0).all()
+
+
+def test_entry_gate_missing_dates_pass_through():
+    """闸门索引未覆盖的日期直通（计数 gate_missing_days），行为与无闸门一致。"""
+    close = mk_close({"LDR": [0.01] * 12 + [0.01], "C_GOOD": [0.01]}, 14)
+    base = V3Backtester(close, CONCEPTS, broad_codes=BROAD, allA_code="ALLA",
+                        params=V3Params()).run(close.index[11])
+    sparse = pd.Series(True, index=close.index[12:])  # 首个信号日缺失
+    gated = V3Backtester(close, CONCEPTS, broad_codes=BROAD, allA_code="ALLA",
+                         params=V3Params(), entry_gate=sparse).run(close.index[11])
+    assert gated["stats"]["gate_missing_days"] > 0
+    assert gated["stats"]["entries"] == base["stats"]["entries"]
+    assert list(gated["nav_curve"]) == pytest.approx(list(base["nav_curve"]))
+
+
+def test_entry_gate_true_preserves_baseline():
+    """全 True 闸门 = 基线逐位一致。"""
+    close = mk_close({"LDR": [0.01] * 12 + [0.01], "C_GOOD": [0.01]}, 14)
+    kw = dict(concepts=CONCEPTS, broad_codes=BROAD, allA_code="ALLA", params=V3Params())
+    base = V3Backtester(close, **kw).run(close.index[11])
+    gated = V3Backtester(close, entry_gate=pd.Series(True, index=close.index), **kw).run(close.index[11])
+    assert list(gated["nav_curve"]) == pytest.approx(list(base["nav_curve"]))
+    assert gated["stats"]["entries"] == base["stats"]["entries"]
+    assert gated["stats"]["entry_blocked_days"] == 0
+
+
+def test_exit_grid_flow_exit():
+    """exit_grid 全 True：每个检查日都退出（flow_exit 计数≥1），不留仓。"""
+    close = mk_close({"LDR": [0.01] * 12 + [0.01], "C_GOOD": [0.01]}, 18)
+    grid = pd.DataFrame(True, index=close.index, columns=CONCEPTS)
+    bt = V3Backtester(close, CONCEPTS, broad_codes=BROAD, allA_code="ALLA",
+                      params=V3Params(), exit_grid=grid)
+    out = bt.run(close.index[11])
+    assert out["stats"].get("flow_exits", 0) >= 1
+    sells = out["trades"][out["trades"]["type"].isin(["exit", "stop"])]
+    assert len(sells) >= 1
+
+
+def test_exit_grid_nan_and_missing_no_effect():
+    """exit_grid 全 NaN（触发面空）= 基线逐位一致。"""
+    close = mk_close({"LDR": [0.01] * 12 + [0.01], "C_GOOD": [0.01]}, 18)
+    kw = dict(concepts=CONCEPTS, broad_codes=BROAD, allA_code="ALLA", params=V3Params())
+    base = V3Backtester(close, **kw).run(close.index[11])
+    grid = pd.DataFrame(np.nan, index=close.index, columns=CONCEPTS)
+    gated = V3Backtester(close, exit_grid=grid, **kw).run(close.index[11])
+    assert list(gated["nav_curve"]) == pytest.approx(list(base["nav_curve"]))
+    assert gated["stats"].get("flow_exits", 0) == 0
+
+
+def test_post_rank_identity_and_reorder():
+    """post_rank=None=基线；恒等函数=基线；反转函数应改变选择。"""
+    close = mk_close({"LDR": [0.01] * 12 + [0.01],
+                      "C_GOOD": [0.01], "C_MID": [0.005]}, 14)
+    kw = dict(concepts=CONCEPTS, broad_codes=BROAD, allA_code="ALLA", params=V3Params())
+    base = V3Backtester(close, **kw).run(close.index[11])
+    ident = V3Backtester(close, post_rank=lambda rk, d: rk, **kw).run(close.index[11])
+    assert list(ident["nav_curve"]) == pytest.approx(list(base["nav_curve"]))
+
+    def rev(rk, d):
+        return rk.iloc[::-1].reset_index(drop=True)
+
+    flipped = V3Backtester(close, post_rank=rev, **kw).run(close.index[11])
+    b_first = base["trades"][base["trades"]["type"] == "entry"]["to"].iloc[0]
+    f_first = flipped["trades"][flipped["trades"]["type"] == "entry"]["to"].iloc[0]
+    assert b_first != f_first or list(flipped["nav_curve"]) != pytest.approx(list(base["nav_curve"]))

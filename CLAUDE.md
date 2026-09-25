@@ -25,7 +25,7 @@ REST + 本地 qlib 备用链路。
 ## 常用验证与入口
 
 ```bash
-conda run -n resonance python -m pytest -q            # 离线测试（54 个）
+conda run -n resonance python -m pytest -q            # 离线测试（63 个）
 conda run -n resonance python work/probe.py           # iFinD 网络冒烟
 conda run -n resonance python work/signal_daily.py    # OOS 每日 runner（暂停中，用户通知后开启）
 conda run -n resonance python work/backtest_v41.py    # 生产栈回测复现
