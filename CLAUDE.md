@@ -40,3 +40,4 @@ conda run -n resonance python work/backtest_v41.py    # 生产栈回测复现
 
 `resonance/config.py`：V43_ANCHOR_POOL（三锚）、V41_BROAD_POOL（A9 对照轨）、
 历史池与采集参数。冻结参数清单：docs/v43-best-plan.md §三。
+数据资产明细与口径：docs/data-inventory.md（2026-09-25 清点）。
