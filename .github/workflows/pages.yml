@@ -1,0 +1,60 @@
+# VitePress 站点 → GitHub Pages 部署（双轨备份通道，主通道 EdgeOne 不变）
+# 产物结构：cleanUrls 平铺 html 重组为 dir/index.html（Pages 静态托管
+# 不支持 /nav/ → nav.html 重写）；base=/6.resonance/ 由 config.mts 读取
+# VITEPRESS_BASE 实现，EdgeOne 构建（不传该变量）输出与从前逐位一致。
+name: Deploy site to Pages
+on:
+  push:
+    branches: [master]
+    paths: ['site/**', 'docs/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install
+        run: npm ci
+        working-directory: site
+      - name: Build (project-page base)
+        run: npm run docs:build
+        working-directory: site
+        env:
+          VITEPRESS_BASE: /6.resonance/
+      - name: Restructure clean URLs for static hosting
+        working-directory: site/.vitepress/dist
+        run: |
+          set -e
+          # cleanUrls 平铺 html（nav.html、docs/xxx.html…）→ dir/index.html；
+          # diagrams/ 是 public 直通的独立交互图，保持原路径不动
+          shopt -s nullglob
+          for f in *.html docs/*.html; do
+            case "${f##*/}" in index.html|404.html) continue ;; esac
+            d="${f%.html}"; mkdir -p "$d"; mv "$f" "$d/index.html"
+          done
+          find . -maxdepth 2 \( -type d -o -name '*.html' \) | sort | head -20
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/.vitepress/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
