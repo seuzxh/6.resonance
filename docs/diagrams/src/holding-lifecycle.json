@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "持仓状态机 · V3Backtester 事件循环",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1030,
+      620
+    ],
+    "views": [
+      {
+        "id": "main-loop",
+        "label": "主循环",
+        "focus": [
+          "flat",
+          "entry",
+          "hold",
+          "check"
+        ],
+        "note": "空仓建仓 → 持有 → 排名检查的日循环。"
+      },
+      {
+        "id": "buffer",
+        "label": "Top3 缓冲",
+        "focus": [
+          "check",
+          "hold",
+          "entry"
+        ],
+        "note": "在 Top3 续持；跌出则换仓 #1 并重置最短持有。"
+      },
+      {
+        "id": "exits",
+        "label": "风控出口",
+        "focus": [
+          "hold",
+          "check",
+          "cleared",
+          "cooldown",
+          "flat"
+        ],
+        "note": "止损与闸门清仓共用冷静期出口，1 日后回空仓。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "主生命周期"
+    },
+    {
+      "id": "guard",
+      "label": "风控与恢复"
+    }
+  ],
+  "states": [
+    {
+      "id": "flat",
+      "type": "start",
+      "label": "空仓",
+      "sublabel": "闸门开待信号",
+      "lane": "main",
+      "col": 0,
+      "step": "01"
+    },
+    {
+      "id": "entry",
+      "type": "active",
+      "label": "建仓执行",
+      "sublabel": "T+1 收盘成交",
+      "lane": "main",
+      "col": 1,
+      "step": "02"
+    },
+    {
+      "id": "hold",
+      "type": "active",
+      "label": "持有",
+      "sublabel": "min_hold=3 内",
+      "lane": "main",
+      "col": 2,
+      "step": "03"
+    },
+    {
+      "id": "check",
+      "type": "decision",
+      "label": "排名检查",
+      "sublabel": "仍在 Top3？",
+      "lane": "main",
+      "col": 3,
+      "step": "04",
+      "tag": "check"
+    },
+    {
+      "id": "cleared",
+      "type": "failure",
+      "label": "平仓出口",
+      "sublabel": "止损 −5% / 闸门关",
+      "lane": "guard",
+      "col": 1,
+      "tag": "recoverable"
+    },
+    {
+      "id": "cooldown",
+      "type": "waiting",
+      "label": "冷静期",
+      "sublabel": "1 日禁开新仓",
+      "lane": "guard",
+      "col": 0,
+      "tag": "pause"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t-keep",
+      "from": "check",
+      "to": "hold",
+      "variant": "emphasis"
+    },
+    {
+      "id": "t-switch",
+      "from": "check",
+      "to": "entry",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          556,
+          58
+        ],
+        [
+          248,
+          58
+        ]
+      ]
+    },
+    {
+      "id": "t-stop",
+      "from": "hold",
+      "to": "cleared",
+      "variant": "security",
+      "route": "drop"
+    },
+    {
+      "id": "t-gate",
+      "from": "check",
+      "to": "cleared",
+      "variant": "security",
+      "route": "drop"
+    },
+    {
+      "id": "t-cool",
+      "from": "cleared",
+      "to": "cooldown",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          556,
+          430
+        ],
+        [
+          402,
+          430
+        ]
+      ]
+    },
+    {
+      "id": "t-resume",
+      "from": "cooldown",
+      "to": "flat",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "主循环",
+      "items": [
+        "空仓 → T+1 建仓 → 持有 → 排名检查",
+        "Top3 缓冲续持，跌出换仓 #1 并重置 min_hold"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "风控出口",
+      "items": [
+        "收盘价 −5% 止损 / 闸门关清仓共用出口",
+        "平仓后冷静期 1 日，再回空仓循环"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "口径",
+      "items": [
+        "全部收盘价判定（stop_mode=close）",
+        "首次排名检查在入场执行后第 3 个交易日"
+      ]
+    }
+  ]
+}

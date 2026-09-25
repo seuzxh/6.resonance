@@ -1,65 +1,70 @@
-# resonance — 指数—概念共振与指数轮动回测
+# resonance — 指数—概念上涨共振策略研究
 
-概念板块指数与宽基指数的"共振"（相关性）分析，及其驱动的指数轮动回测。
-迁移自 ChatGPT Codex 会话「验证 iFinD 方案」（2026-09-17/18，Windows），
-完整上下文见 [docs/gpt-session-summary.md](docs/gpt-session-summary.md)。
+概念板块指数与宽基指数的"共振"（相关性）分析及其驱动的指数轮动回测。
+数据源同花顺 iFinD REST；迁移自 ChatGPT Codex 会话（2026-09-17/18），
+起源上下文见 [docs/gpt-session-summary.md](docs/gpt-session-summary.md)。
 
-## 项目定位
+## 现行生产口径：V4.3 三锚动选（2026-09-23 用户定档，暂定）
 
-- **数据层**：同花顺 iFinD REST（quantapi 网关），指数/概念日线 + 概念目录。
-- **指标层**：20 日 Pearson 相关（主口径）、控制全A偏相关（信息量口径）、5/60 日对照。
-- **回测层**：指数轮动收益回测器（Top5 缓冲、T+1、几何复利）；VectorBT 适配。
-- **研究性质**：指数收益累加研究，费率/滑点为 0，不代表可实盘成交。
+- **锚定指数池**：深证成指 / 国证2000 / 科创50 三锚动选
+  （`config.V43_ANCHOR_POOL`）。
+- **栈**：20 日上涨共振 EW 信号 → 日线 Top5 预选 → 收盘前 24 根 5min 纯分钟
+  重排 → Top3 缓冲 + 领先指数动态半衰期 + 5% 收盘止损 + 最短持有 3 日 +
+  冷静期 1 日；T+1、几何复利、10bp 决策成本。冻结参数见
+  [docs/v43-best-plan.md](docs/v43-best-plan.md) §三。
+- **样本内实测（10bp，5 相位中位）**：完整周期 **+165.4% / −16.2% / 夏普
+  1.98**；分钟子窗 +87.6% / −13.0% / 2.07；领先分布 73/66/51 三锚均衡轮动。
+- **警示（知情保留）**：2022-24 时间外推三锚 **−56.2% 未通过**（成长牛市
+  regime 依赖）；深证成指单锚 −1.7% 为唯一跨 regime 存活者，由 OOS C1 轨
+  并行裁决；防御层与 regime 过滤路线已证伪关闭。全部数字为指数研究口径
+  （不可直接交易、概念目录幸存者偏差、样本内上界——实验手册 L3）。
+- **OOS**：四轨（D3 三锚主轨 / A9 九池 / B13 十三池 / C1 深证成指单锚对照）
+  样本外验证，≥60 信号日按预注册判据裁决，评价期禁改参
+  （[docs/oos-validation-design.md](docs/oos-validation-design.md)）。
+  当前每日同步**暂停中**，用户通知后开启（runner 无状态重放、幂等）。
 
-## 当前状态
+## 版本链与方法论
 
-- [x] 2026-09-19 建仓迁移：iFinD 客户端、共振指标、回测引擎核心、离线测试就绪。
-- [x] 2026-09-19 数据采集（全量）：概念目录快照 529 个；13 宽基 + 529 概念日线落盘
-      （478 交易日；首轮配额中断，换备用账号 token 后断点续传补全）。
-- [x] 2026-09-19 基线复现（核心口径对齐）：dyn5 总收益 +152.36% vs 锚点 +148.59%，
-      超额 +79.60% vs +80.13%，夏普 1.840 vs 1.792，回撤 −35.37% 精确一致。
-      判定会话口径：exec_lag=1（信号次日收盘入场）、全A 基准日 = 2024-12-31 收盘。
-      **⚠️ 新发现：调仓网格相位敏感性极高（相邻相位总收益 +29%~+152%），锚点恰为
-      最优相位**——总收益数字不可作稳健预期。见
-      [outputs/index_backtest_framework/reproduction_report.md](outputs/index_backtest_framework/reproduction_report.md)。
-- [x] 2026-09-19 分钟共振探索 v1–v4b（预注册验证，**五代指标全部不采纳**）。
-      v4（极值时刻弹性：某日权重指数 5~20min 最大涨/跌时刻的同时刻概念响应）：
-      8/8 HARMFUL；v4b（用户追加：只涨窗 e_up=C_up/R_up）：7/8 HARMFUL +
-      1 NEUTRAL（w5·N1 +3.3pp 但 3/5 相位不达标），IC 无信息（w3 接近显著
-      负向 −0.12/t=−1.64）。五代证据链（60min/5min 滚动相关、短窗、极值双窗/
-      只涨弹性）系统性排除"Top10 池内分钟共振再排序"；分钟数据剩余方向：
-      领导层日内确认 / 盘中风控。见
-      [outputs/minute_resonance/report.md](outputs/minute_resonance/report.md)。
-- [ ] 探索方向①：扩展权重/风格指数池；②动态调仓区间；③止损；④空仓/国债避险
-      （任何新结论须过网格相位稳健性检验，如多相位取中位数）。
+V3 纯日线栈（+74.4%）→ V4.1 13 池 + 分钟重排 → V4.2 topk3 + leader 半衰期
+（9 池 +25.1%）→ **V4.3 三锚动选（现行）**。旧版本文档与报告已清理，
+git 历史（≤0790071）完整可溯；在位方法论沉淀：
+
+- [实验手册：七条定律与负结论登记表](docs/experiment-playbook.md)
+- [锚点终选实验（三锚决策依据）](outputs/exp_anchor/report.md)
+- [2022-24 历史外推验证](outputs/exp_hist_2022/report.md)
 
 ## 环境
 
 只使用 conda 环境 `resonance`（Python 3.12，vectorbt 1.1.0）：
 
 ```bash
-conda run -n resonance python -m pytest -q          # 离线测试（18 个）
+conda run -n resonance python -m pytest -q          # 离线测试（全 mock）
 conda run -n resonance python work/probe.py         # iFinD 冒烟（需网络+凭证）
-conda run -n resonance python work/collect.py       # 日线采集（目录+日线，断点续传）
-conda run -n resonance python work/collect_minute.py    # 60min 分钟采集（全窗）
-conda run -n resonance python work/collect_minute5.py   # 5min 分钟采集（需求矩阵裁剪）
-conda run -n resonance python work/validate_data.py # 数据验证（schema/网格/跨源对照）
-conda run -n resonance python work/backtest_dynamic.py  # 基线复现（变体矩阵）
-conda run -n resonance python work/backtest_minute.py   # 分钟共振验证（5 相位×三变体）
+conda run -n resonance python work/signal_daily.py  # 每日 OOS runner（D3 主轨）
+conda run -n resonance python work/exp_anchor_full9.py   # 13 锚终表复现
+conda run -n resonance python work/exp_hist_2022.py      # 2022-24 历史外推
+conda run -n resonance python work/validate_data.py      # 数据体检
+conda run -n resonance python work/collect.py            # 日线采集（断点续传）
+conda run -n resonance python work/collect_minute5.py    # 5min 采集（需求矩阵裁剪）
+conda run -n resonance python work/backtest_v3.py        # V3 栈锚点对照 + 相位表
+conda run -n resonance python work/backtest_v41.py       # V4.1 分钟重排栈复现
+conda run -n resonance python work/opt_v3.py --round N   # V3 十轮优化（历史）
 ```
 
 凭证不进仓库：refresh_token 从 `/home/zxh/qlib_data/scripts/` 全局源或环境变量
-`IFIND_REFRESH_TOKEN` 读取；access_token 缓存于 `/home/zxh/qlib_data/.ifind_token`（多项目共享）。
+`IFIND_REFRESH_TOKEN` 读取；access_token 缓存于 `/home/zxh/qlib_data/.ifind_token`
+（多项目共享）。
 
 ## 目录
 
 ```
-resonance/     Python 包：config / ifind 客户端 / metrics 共振指标 / backtest 轮动引擎
-work/          运维脚本（probe 冒烟、采集、看板）
+resonance/     Python 包：config / ifind 客户端 / metrics 共振指标 / backtest 轮动引擎 / v3 现行引擎
+work/          运维脚本（采集、回测复现、锚点实验、每日 OOS runner）
 tests/         离线单元测试（全部 mock）
 data/          本地缓存（gitignored）
-outputs/       交付物（ifind_validation / index_backtest_framework）
-docs/          GPT 会话纪要、方案文档
+outputs/       交付物（exp_anchor / exp_hist_2022 / oos）
+docs/          现行方案 v43 / 实验手册 / OOS 设计 / GPT 起源纪要
+docs/diagrams/ 交互式图表（架构/流程/时序/数据流/状态机，archify 生成）
 ```
 
 ## 硬约束
@@ -68,3 +73,4 @@ docs/          GPT 会话纪要、方案文档
 2. 指数不可直接交易；任何"实盘化"结论必须注明缺费率/滑点/跟踪误差。
 3. 概念目录是当前快照，历史回测存在幸存者偏差，结论须带此标注。
 4. 凭证不入库（secrets 纪律，见 `resonance/ifind.py` 文档字符串）。
+5. OOS 评价期内禁止修改冻结参数。

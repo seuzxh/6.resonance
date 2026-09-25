@@ -1,0 +1,278 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "OOS 每日运行流程 · signal_daily.py",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "main-run",
+        "label": "主流程",
+        "focus": [
+          "run0",
+          "gate",
+          "daily",
+          "minute",
+          "replay4",
+          "signal",
+          "oosout"
+        ],
+        "note": "收盘后启动，过三道数据防线，四轨无状态重放至落盘。"
+      },
+      {
+        "id": "guards",
+        "label": "停机与降级",
+        "focus": [
+          "gate",
+          "refuse",
+          "daily",
+          "quota",
+          "minute"
+        ],
+        "note": "盘中拒绝与配额降级两条安全出口。"
+      },
+      {
+        "id": "discipline",
+        "label": "评价纪律",
+        "focus": [
+          "replay4",
+          "signal",
+          "oosout"
+        ],
+        "note": "冻结参数重放，降级计数上报，≥60 信号日按预注册判据裁决。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "disc",
+      "label": "运行纪律",
+      "variant": "exception"
+    },
+    {
+      "id": "ingest",
+      "label": "数据采集"
+    },
+    {
+      "id": "replay",
+      "label": "重放与信号"
+    },
+    {
+      "id": "out",
+      "label": "落盘"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p-guard",
+      "label": "运行纪律",
+      "fromCol": 0,
+      "toCol": 1,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p-ingest",
+      "label": "数据自愈",
+      "fromCol": 2,
+      "toCol": 3
+    },
+    {
+      "id": "p-out",
+      "label": "重放与落盘",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-guard",
+      "label": "三道数据防线",
+      "lane": "disc",
+      "fromCol": 1,
+      "toCol": 3,
+      "variant": "security"
+    }
+  ],
+  "mainPath": [
+    "run0",
+    "gate",
+    "daily",
+    "minute",
+    "replay4",
+    "signal",
+    "oosout"
+  ],
+  "nodes": [
+    {
+      "id": "run0",
+      "lane": "ingest",
+      "col": 0,
+      "type": "external",
+      "label": "收盘后启动",
+      "sublabel": "signal_daily.py",
+      "width": 200
+    },
+    {
+      "id": "gate",
+      "lane": "disc",
+      "col": 1,
+      "type": "security",
+      "label": "盘中硬闸",
+      "sublabel": "15:05 前拒绝",
+      "tag": "防线 ①",
+      "width": 200
+    },
+    {
+      "id": "refuse",
+      "lane": "disc",
+      "col": 2,
+      "type": "security",
+      "label": "拒绝运行",
+      "sublabel": "退出码 2",
+      "width": 200
+    },
+    {
+      "id": "daily",
+      "lane": "ingest",
+      "col": 2,
+      "type": "backend",
+      "label": "增量日线",
+      "sublabel": "keep=last 幂等覆盖",
+      "tag": "防线 ②",
+      "width": 200
+    },
+    {
+      "id": "minute",
+      "lane": "ingest",
+      "col": 3,
+      "type": "backend",
+      "label": "分钟自愈",
+      "sublabel": "按当日 bar 判新鲜",
+      "tag": "防线 ③",
+      "width": 200
+    },
+    {
+      "id": "quota",
+      "lane": "disc",
+      "col": 3,
+      "type": "security",
+      "label": "配额降级",
+      "sublabel": "qlib · HF 15:00bar",
+      "width": 200
+    },
+    {
+      "id": "replay4",
+      "lane": "replay",
+      "col": 4,
+      "type": "backend",
+      "label": "四轨无状态重放",
+      "sublabel": "D3 / A9 / B13 / C1",
+      "width": 200
+    },
+    {
+      "id": "signal",
+      "lane": "replay",
+      "col": 5,
+      "type": "backend",
+      "label": "信号生成",
+      "sublabel": "T 收盘 → T+1 执行",
+      "width": 200
+    },
+    {
+      "id": "oosout",
+      "lane": "out",
+      "col": 5,
+      "type": "database",
+      "label": "outputs/oos",
+      "sublabel": "信号 · 净值 · 审计",
+      "width": 200
+    }
+  ],
+  "edges": [
+    {
+      "from": "run0",
+      "to": "gate",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "gate",
+      "to": "daily",
+      "label": "通过",
+      "role": "main",
+      "variant": "emphasis",
+      "route": "drop",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "gate",
+      "to": "refuse",
+      "label": "盘中",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "daily",
+      "to": "minute",
+      "role": "main"
+    },
+    {
+      "from": "daily",
+      "to": "quota",
+      "label": "-4318",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "quota",
+      "to": "minute",
+      "label": "降级链路",
+      "role": "return",
+      "variant": "dashed"
+    },
+    {
+      "from": "minute",
+      "to": "replay4",
+      "role": "main",
+      "variant": "emphasis",
+      "route": "drop",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "replay4",
+      "to": "signal",
+      "role": "main"
+    },
+    {
+      "from": "signal",
+      "to": "oosout",
+      "role": "main",
+      "variant": "emphasis",
+      "route": "drop",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "一条主路径",
+      "items": [
+        "收盘后启动 → 三道防线 → 四轨重放 → 落盘",
+        "无状态重放幂等，重跑逐位一致"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "停机与降级",
+      "items": [
+        "15:05 前硬闸拒绝（退出码 2）",
+        "配额尽走 qlib / HF 15:00bar 降级"
+      ]
+    }
+  ]
+}

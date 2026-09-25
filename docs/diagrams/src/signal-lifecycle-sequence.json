@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "信号生命周期 · T 收盘 → T+1 执行 → T+2 计收益",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      560
+    ],
+    "column_fit": "spread",
+    "views": [
+      {
+        "id": "t-close",
+        "label": "T 日收盘信号",
+        "focus": [
+          "market",
+          "signals",
+          "minute",
+          "backtester"
+        ],
+        "note": "收盘宽表与尾盘 24bar 汇入引擎，日线 Top5 预选 + 分钟重排出最终 Top3。"
+      },
+      {
+        "id": "t1-exec",
+        "label": "T+1 收盘执行",
+        "focus": [
+          "backtester",
+          "exec",
+          "market"
+        ],
+        "note": "exec_lag=1：信号次日收盘成交，无未来数据。"
+      },
+      {
+        "id": "t2-pnl",
+        "label": "T+2 起计收益",
+        "focus": [
+          "market",
+          "backtester",
+          "oos"
+        ],
+        "note": "成交后次日起逐日计收益，信号与净值落盘 outputs/oos。"
+      }
+    ]
+  },
+  "participants": [
+    {
+      "id": "market",
+      "type": "external",
+      "label": "行情收盘",
+      "sublabel": "日线 · 5min"
+    },
+    {
+      "id": "signals",
+      "type": "backend",
+      "label": "V3Signals",
+      "sublabel": "共振排名 · 闸门"
+    },
+    {
+      "id": "minute",
+      "type": "database",
+      "label": "MinuteBarProvider",
+      "sublabel": "尾盘 24bar"
+    },
+    {
+      "id": "backtester",
+      "type": "backend",
+      "label": "V3Backtester",
+      "sublabel": "事件循环"
+    },
+    {
+      "id": "exec",
+      "type": "security",
+      "label": "T+1 执行",
+      "sublabel": "收盘成交"
+    },
+    {
+      "id": "oos",
+      "type": "database",
+      "label": "outputs/oos",
+      "sublabel": "信号 · 净值"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 335,
+      "label": "T 日收盘信号"
+    },
+    {
+      "from": 345,
+      "to": 428,
+      "label": "T+1 收盘执行"
+    },
+    {
+      "from": 435,
+      "to": 505,
+      "label": "T+2 起计收益"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m-close",
+      "from": "market",
+      "to": "signals",
+      "y": 160,
+      "label": "T 收盘价宽表",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m-min",
+      "from": "market",
+      "to": "minute",
+      "y": 192,
+      "label": "尾盘 24 根 5min"
+    },
+    {
+      "id": "q-rank",
+      "from": "backtester",
+      "to": "signals",
+      "y": 224,
+      "label": "ranking(i)"
+    },
+    {
+      "id": "a-top5",
+      "from": "signals",
+      "to": "backtester",
+      "y": 256,
+      "label": "Top5 × 共振分",
+      "variant": "return"
+    },
+    {
+      "id": "q-bars",
+      "from": "backtester",
+      "to": "minute",
+      "y": 288,
+      "label": "window_span(24)",
+      "note": "minute_up_resonance 纯分钟重排 → 最终 Top3"
+    },
+    {
+      "id": "a-bars",
+      "from": "minute",
+      "to": "backtester",
+      "y": 320,
+      "label": "24bar 序列",
+      "variant": "return"
+    },
+    {
+      "id": "pending",
+      "from": "backtester",
+      "to": "exec",
+      "y": 352,
+      "label": "pending：买/换/卖",
+      "variant": "emphasis"
+    },
+    {
+      "id": "deal",
+      "from": "exec",
+      "to": "market",
+      "y": 384,
+      "label": "T+1 收盘成交"
+    },
+    {
+      "id": "price-back",
+      "from": "exec",
+      "to": "backtester",
+      "y": 416,
+      "label": "成交价回填",
+      "variant": "return"
+    },
+    {
+      "id": "pnl",
+      "from": "market",
+      "to": "backtester",
+      "y": 448,
+      "label": "T+2 起逐日计收益",
+      "variant": "emphasis"
+    },
+    {
+      "id": "write-out",
+      "from": "backtester",
+      "to": "oos",
+      "y": 476,
+      "label": "信号 · 净值 · 审计",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "信号链路",
+      "items": [
+        "日线 20 日上涨共振 EW → Top5 预选",
+        "尾盘 24 根 5min 纯分钟重排 → Top3 缓冲决策"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "无未来数据",
+      "items": [
+        "T 信号最早 T+1 计收益（exec_lag=1）",
+        "5% 收盘止损与 min_hold=3 由同一事件循环裁决"
+      ]
+    }
+  ]
+}

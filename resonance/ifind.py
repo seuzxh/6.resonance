@@ -225,11 +225,14 @@ def fetch_minute_close(
     start_date: str,
     end_date: str,
     interval: str = "60",
+    day_start: str = "09:30:00",
 ) -> pd.DataFrame:
-    """high_frequency 60min 收盘价 → 长表 DF[symbol, datetime, close]。
+    """high_frequency 分钟收盘价 → 长表 DF[symbol, datetime, close]。
 
     只取 close（配额省 4/5）；datetime 为 bar 结束时刻 "YYYY-MM-DD HH:MM"。
-    无分钟数据的代码静默缺行（调用方按 coverage 降级）。
+    day_start="12:00:00" 为下午盘省配额口径（13:05~15:00 共 24 根 5min bar，
+    V4.1 分钟重排恰好只需当日最后 24 根）。无分钟数据的代码静默缺行
+    （调用方按 coverage 降级）。
     """
     frames: list[pd.DataFrame] = []
     for i in range(0, len(codes), MINUTE_CODES_PER_REQUEST):
@@ -237,7 +240,7 @@ def fetch_minute_close(
         payload = {
             "codes": ",".join(chunk),
             "indicators": "close",
-            "starttime": f"{start_date} 09:30:00",
+            "starttime": f"{start_date} {day_start}",
             "endtime": f"{end_date} 15:01:00",
             "functionpara": {"Interval": interval, "CPS": "-no", "Fill": "Original"},
         }

@@ -1,0 +1,375 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "resonance · 指数—概念上涨共振策略系统",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/seuzxh/6.resonance",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "e7fddfcc307f68dfea6d2edde1b6074bb814a96c"
+    },
+    "views": [
+      {
+        "id": "main-path",
+        "label": "主数据路径",
+        "focus": [
+          "ifind",
+          "daily",
+          "engine",
+          "runner",
+          "oos"
+        ],
+        "note": "iFinD 日线收盘 → V3 引擎 → 四轨 OOS 重放 → 信号落盘。"
+      },
+      {
+        "id": "degrade-repair",
+        "label": "降级与修复链路",
+        "focus": [
+          "qlib",
+          "ifind",
+          "daily",
+          "minute"
+        ],
+        "note": "配额尽走 qlib bin；HF 15:00 bar = 日线收盘修复链路。"
+      },
+      {
+        "id": "engine-output",
+        "label": "引擎与产出",
+        "focus": [
+          "engine",
+          "labs",
+          "oos",
+          "docs"
+        ],
+        "note": "冻结参数引擎同时服务实验脚本与每日 runner。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "ifind",
+      "type": "external",
+      "label": "同花顺 iFinD",
+      "sublabel": "REST quantapi 网关",
+      "tag": "history_data · HF 5min",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "resonance/ifind.py",
+          "label": "客户端"
+        }
+      ]
+    },
+    {
+      "id": "token",
+      "type": "security",
+      "label": "凭证会话",
+      "sublabel": ".ifind_token + env",
+      "tag": "不入库",
+      "pos": [
+        40,
+        120
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "resonance/ifind.py",
+          "line": 41,
+          "label": "加载器"
+        }
+      ]
+    },
+    {
+      "id": "qlib",
+      "type": "external",
+      "label": "本地 qlib bin",
+      "sublabel": "配额尽降级链路",
+      "tag": "≤0.9bps 对齐",
+      "pos": [
+        250,
+        120
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "work/collect_v41_qlib.py",
+          "label": "降级采集"
+        }
+      ]
+    },
+    {
+      "id": "daily",
+      "type": "database",
+      "label": "daily_bars.parquet",
+      "sublabel": "546 codes 日线收盘",
+      "pos": [
+        250,
+        300
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "work/collect.py",
+          "label": "日线采集"
+        }
+      ]
+    },
+    {
+      "id": "minute",
+      "type": "database",
+      "label": "minute5_bars.parquet",
+      "sublabel": "尾盘 24bar · 全天修复",
+      "pos": [
+        250,
+        450
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "work/collect_minute5.py",
+          "label": "5min 采集"
+        }
+      ]
+    },
+    {
+      "id": "engine",
+      "type": "backend",
+      "label": "V3 引擎",
+      "sublabel": "V3Signals · V3Backtester",
+      "tag": "V4.3 冻结参数",
+      "pos": [
+        470,
+        300
+      ],
+      "size": [
+        170,
+        74
+      ],
+      "sources": [
+        {
+          "path": "resonance/v3.py",
+          "label": "引擎实现"
+        }
+      ]
+    },
+    {
+      "id": "runner",
+      "type": "backend",
+      "label": "signal_daily.py",
+      "sublabel": "OOS 每日 runner（15:05 后）",
+      "tag": "四轨 D3/A9/B13/C1",
+      "pos": [
+        700,
+        300
+      ],
+      "size": [
+        160,
+        74
+      ],
+      "sources": [
+        {
+          "path": "work/signal_daily.py",
+          "label": "runner"
+        }
+      ]
+    },
+    {
+      "id": "labs",
+      "type": "backend",
+      "label": "实验脚本",
+      "sublabel": "锚点与回测实验",
+      "pos": [
+        700,
+        450
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "sources": [
+        {
+          "path": "work/exp_anchor_full9.py",
+          "label": "锚点实验"
+        }
+      ]
+    },
+    {
+      "id": "oos",
+      "type": "database",
+      "label": "outputs/oos",
+      "sublabel": "信号 · 净值 · 审计",
+      "pos": [
+        920,
+        300
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "docs",
+      "type": "frontend",
+      "label": "docs + Pages",
+      "sublabel": "v43 方案 · 手册 · OOS 设计",
+      "pos": [
+        920,
+        450
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "docs/v43-best-plan.md",
+          "label": "现行方案"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "conda 环境 resonance",
+      "wraps": [
+        "engine",
+        "runner",
+        "labs"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "凭证纪律（不入库）",
+      "wraps": [
+        "token"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "token-session",
+      "from": "token",
+      "to": "ifind",
+      "label": "access_token",
+      "variant": "security",
+      "labelDy": 24
+    },
+    {
+      "id": "ifind-daily",
+      "from": "ifind",
+      "to": "daily",
+      "label": "增量收盘",
+      "variant": "emphasis",
+      "labelDy": -40
+    },
+    {
+      "id": "ifind-minute",
+      "from": "ifind",
+      "to": "minute",
+      "label": "HF 5min",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "qlib-daily",
+      "from": "qlib",
+      "to": "daily",
+      "label": "降级补采",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "id": "daily-engine",
+      "from": "daily",
+      "to": "engine",
+      "label": "收盘宽表"
+    },
+    {
+      "id": "minute-engine",
+      "from": "minute",
+      "to": "engine",
+      "label": "24bar 重排",
+      "fromSide": "right",
+      "toSide": "bottom"
+    },
+    {
+      "id": "engine-runner",
+      "from": "engine",
+      "to": "runner",
+      "label": "重放"
+    },
+    {
+      "id": "engine-labs",
+      "from": "engine",
+      "to": "labs",
+      "label": "回测实验",
+      "variant": "dashed"
+    },
+    {
+      "id": "runner-oos",
+      "from": "runner",
+      "to": "oos",
+      "label": "落盘",
+      "variant": "emphasis"
+    },
+    {
+      "id": "labs-docs",
+      "from": "labs",
+      "to": "docs",
+      "label": "报告入库",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "数据层",
+      "items": [
+        "iFinD 主链路：history_data 增量 + HF 5min 尾盘",
+        "配额 -4318 时降级 qlib bin（≤0.9bps 对齐）",
+        "HF 15:00 bar = 日线收盘修复链路（0bps 已验证）"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "引擎层",
+      "items": [
+        "20 日上涨共振 EW × 日线 Top5 预选",
+        "收盘前 24 根 5min 纯分钟重排 × Top3 缓冲",
+        "领先指数动态半衰期 + 5% 收盘止损"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "纪律",
+      "items": [
+        "凭证不入库（env + 仓库外缓存）",
+        "runner 只在 15:05 后运行（盘中硬闸）",
+        "OOS 评价期禁改参；结论标注研究口径"
+      ]
+    }
+  ]
+}

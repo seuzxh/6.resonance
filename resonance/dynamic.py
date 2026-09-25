@@ -58,19 +58,24 @@ def make_dynamic_rank_fn(
     cold_start: bool = False,
     backtest_start: str | None = None,
     exec_lag: int = 0,
+    ranking_fn=None,
 ):
     """构造 RotationBacktester 用的 rank_fn(date)。
 
     close_all：宽基+概念收盘宽表（同一日历索引，含 lookback）；
     exec_lag：见模块 docstring；引擎传入的 asof 为 d_{i-1}，lag>0 时信号日
     再回移 lag 个交易日（不依赖引擎索引，直接在 close_all 日历上回移）；
-    cold_start=True 时，信号日早于 backtest_start + window 个交易日的榜为空。
+    cold_start=True 时，信号日早于 backtest_start + window 个交易日的榜为空；
+    ranking_fn：榜单指标注入（默认 resonance_rankings；上涨/下跌共振变体传
+    metrics.updown_resonance_rankings 的闭包），签名兼容
+    (returns, index_code, concepts, window, asof=...)。
     """
     if broad_codes is None:
         broad_codes = list(config.BROAD_INDEX_POOL)
     close_broad = close_all[broad_codes]
     returns = close_all.pct_change()
     cal = close_all.index
+    _rank = ranking_fn if ranking_fn is not None else resonance_rankings
 
     cutoff: pd.Timestamp | None = None
     if cold_start:
@@ -88,7 +93,71 @@ def make_dynamic_rank_fn(
             return pd.DataFrame(columns=["concept", "corr"])
         if leader is None:
             return pd.DataFrame(columns=["concept", "corr"])
-        return resonance_rankings(returns, leader, concepts, window, asof=sig_day)
+        return _rank(returns, leader, concepts, window, asof=sig_day)
 
     rank_fn.leader_history: dict[str, str | None] = {}
+    return rank_fn
+
+
+def make_up_short_rank_fn(
+    close_all: pd.DataFrame,
+    concepts: list[str],
+    broad_codes: list[str] | None = None,
+    window: int = 5,
+    min_days: int = 2,
+    gate_days: int = 3,
+    use_gate: bool = True,
+    exec_lag: int = 1,
+    stats: dict | None = None,
+):
+    """用户组合口径（2026-09-20）：短窗上涨共振 + 领先指数 3 日动量开仓闸门。
+
+    - 领先指数：13 宽基近 window 日累计收益最强（与共振窗同参数）；
+    - 榜单：上涨日条件 Pearson（metrics.updown_resonance_rankings side='up'，
+      条件样本 < min_days 回退全窗并计数）；
+    - 闸门 rank_fn.gate_fn(asof)：领先指数近 gate_days 日累计收益 < 0 → 不开
+      新仓（执行层语义见 exec_minute.run_with_intraday_stop；信号日同样按
+      exec_lag 回移，无未来数据）。
+    注意：window=4~5 时上涨条件样本通常仅 2~3 天，Pearson 统计退化
+    （n=2 时恒为 ±1），调用方必须报告 n_cond 分布。
+    """
+    from .metrics import updown_resonance_rankings
+
+    if broad_codes is None:
+        broad_codes = list(config.BROAD_INDEX_POOL)
+    close_broad = close_all[broad_codes]
+    returns = close_all.pct_change()
+    cal = close_all.index
+    st = stats if stats is not None else {}
+
+    def rank_fn(asof) -> pd.DataFrame:
+        asof = pd.Timestamp(asof)
+        pos = cal.searchsorted(asof)
+        sig_day = cal[max(pos - exec_lag, 0)]
+        leader = leader_index(close_broad, sig_day, window)
+        rank_fn.leader_history[str(asof.date())] = leader
+        if leader is None:
+            return pd.DataFrame(columns=["concept", "corr"])
+        return updown_resonance_rankings(returns, leader, concepts, window,
+                                         side="up", min_days=min_days,
+                                         asof=sig_day, stats=st)
+
+    def gate_fn(asof) -> bool:
+        asof = pd.Timestamp(asof)
+        pos = cal.searchsorted(asof)
+        sig_day = cal[max(pos - exec_lag, 0)]
+        leader = leader_index(close_broad, sig_day, window)
+        if leader is None:
+            return False
+        sub = close_broad[leader].loc[:sig_day]
+        if len(sub) < gate_days + 1:
+            return True
+        cum = sub.iloc[-1] / sub.iloc[-gate_days - 1] - 1.0
+        blocked = bool(cum < 0)
+        if blocked:
+            st["gate_blocked_days"] = st.get("gate_blocked_days", 0) + 1
+        return not blocked
+
+    rank_fn.leader_history: dict[str, str | None] = {}
+    rank_fn.gate_fn = gate_fn if use_gate else None
     return rank_fn
