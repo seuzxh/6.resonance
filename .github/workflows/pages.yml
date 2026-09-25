@@ -6,7 +6,7 @@ name: Deploy site to Pages
 on:
   push:
     branches: [master]
-    paths: ['site/**', '.github/workflows/pages.yml']
+    paths: ['site/**', 'docs/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -37,10 +37,14 @@ jobs:
         working-directory: site/.vitepress/dist
         run: |
           set -e
-          for p in nav signals archive; do
-            if [ -f "$p.html" ]; then mkdir -p "$p"; mv "$p.html" "$p/index.html"; fi
+          # cleanUrls 平铺 html（nav.html、docs/xxx.html…）→ dir/index.html；
+          # diagrams/ 是 public 直通的独立交互图，保持原路径不动
+          shopt -s nullglob
+          for f in *.html docs/*.html; do
+            case "$f" in index.html|404.html) continue ;; esac
+            d="${f%.html}"; mkdir -p "$d"; mv "$f" "$d/index.html"
           done
-          ls -la
+          find . -maxdepth 2 \( -type d -o -name '*.html' \) | sort | head -20
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

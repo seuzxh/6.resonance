@@ -14,6 +14,17 @@ export default defineConfig({
       { text: '首页', link: '/' },
       { text: '净值', link: '/nav/' },
       { text: '信号', link: '/signals/' },
+      {
+        text: '文档',
+        items: [
+          { text: 'V4.3 生产方案', link: '/docs/v43-best-plan/' },
+          { text: 'OOS 验证设计', link: '/docs/oos-validation-design/' },
+          { text: '实验手册', link: '/docs/experiment-playbook/' },
+          { text: '资金流闸门探索', link: '/docs/moneyflow-gate-plan/' },
+          { text: '起源纪要', link: '/docs/gpt-session-summary/' },
+          { text: '全部文档', link: '/docs/' },
+        ],
+      },
       { text: '档案', link: '/archive/' },
     ],
     outline: false,
