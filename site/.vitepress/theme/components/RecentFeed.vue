@@ -5,7 +5,7 @@
         <span class="tt">近五日</span>
         <span class="sub">T-1 口径发布 · 当日信号走推送 · 点卡片看明细</span>
       </div>
-      <article v-for="(day, i) in days" :key="day.date" class="card panel" :class="{ open: open === i }">
+      <div class="cards"><article v-for="(day, i) in days" :key="day.date" class="card panel" :class="{ open: open === i }">
         <button class="head" :aria-expanded="open === i" @click="open = open === i ? -1 : i">
           <span class="date"><b class="mono">{{ day.date.slice(5) }}</b><i class="wd">{{ day.wd }}</i></span>
           <span class="chips">
@@ -32,35 +32,18 @@
           </div>
           <div v-if="day.note" class="note">{{ day.note }}</div>
         </div>
-      </article>
+      </article></div>
     </div>
-
-    <aside class="side">
-      <div class="panel sc">
-        <div class="eyebrow">净值速览 · D3 生产轨</div>
-        <div class="st"><span>最新净值</span><b class="mono">{{ nav ? nav.stats.D3.nav.toFixed(3) : '—' }}</b></div>
-        <div class="st"><span>区间收益</span><b class="mono up">{{ nav ? pct(nav.stats.D3.total_ret) : '—' }}</b></div>
-        <div class="st"><span>最大回撤</span><b class="mono down">{{ nav ? pct(nav.stats.D3.max_dd) : '—' }}</b></div>
-        <a class="lnk" href="/nav/">查看净值曲线 →</a>
-      </div>
-      <div class="panel sc">
-        <div class="eyebrow">链路状态</div>
-        <div class="st"><span>数据截至</span><b class="mono">{{ d ? d.as_of : '—' }} <i :class="d && d.health === 'ok' ? 'ok' : 'warn'">{{ d && d.health === 'ok' ? '✓' : '滞后' }}</i></b></div>
-        <div class="st"><span>站点更新</span><b class="mono">{{ d ? d.generated_at.slice(5, 16) : '—' }}</b></div>
-      </div>
-    </aside>
   </div>
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 const SHOW = ['D3', 'C1']
 const d = ref<any>(null)
-const nav = ref<any>(null)
 const open = ref(0)
 const days = computed(() => (d.value ? d.value.days : []))
 onMounted(async () => {
   d.value = await (await fetch(import.meta.env.BASE_URL + 'data/recent.json', { cache: 'no-store' })).json()
-  nav.value = await (await fetch(import.meta.env.BASE_URL + 'data/nav.json', { cache: 'no-store' })).json()
 })
 const pct = (v: number | null) => v == null ? '—' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1) + '%'
 </script>
@@ -92,7 +75,7 @@ const pct = (v: number | null) => v == null ? '—' : (v >= 0 ? '+' : '−') + M
 .track i { width: 40px; flex: none; font-style: normal; color: var(--text-mid); font-size: 12px; }
 .track em { margin-left: auto; font-style: normal; }
 .note { margin: 4px 0 8px; padding: 7px 9px; border-radius: 6px; background: var(--amber-dim); border: 1px solid rgba(233, 162, 59, 0.3); color: var(--amber); font-size: 12px; }
-.side { display: none; }
+
 .sc { padding: 14px; margin-bottom: 14px; }
 .st { display: flex; align-items: baseline; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line-soft); font-size: 12px; }
 .st:first-of-type { border-top: none; }
@@ -101,7 +84,7 @@ const pct = (v: number | null) => v == null ? '—' : (v >= 0 ? '+' : '−') + M
 .st .ok { color: var(--down); font-style: normal; } .st .warn { color: var(--amber); font-style: normal; }
 .lnk { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--gold); text-decoration: none; }
 @media (min-width: 900px) {
-  .feed-area { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 0 24px; align-items: start; }
-  .side { display: block; position: sticky; top: 70px; padding-top: 18px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .card { margin-bottom: 0; }
 }
 </style>

@@ -1,13 +1,14 @@
 <template>
-  <div class="page-wrap">
-    <h1 class="tt">净值</h1>
-    <p class="sub">D3 整体净值 × 三锚分净值（{{ nav.start || '2026-01-01' }} 起，样本内+样本外连续，金色竖线=样本外起点）。分净值＝固定某一锚运行的策略净值（起点=1）；深证成指锚即 C1 轨。样本外段：D3/C1 为官方 OOS 口径（空仓起步）；国证/科创锚为连续展示口径（官方 OOS 未含此二轨）。悬停/点按曲线看当日持仓与买卖。</p>
+  <div class="page-wrap" :class="{ compact: compact }">
+    <h1 v-if="!compact" class="tt">净值</h1>
+    <div v-else class="eyebrow">净值 · D3 整体 × 三锚分净值</div>
+    <p v-if="!compact" class="sub">D3 整体净值 × 三锚分净值（{{ nav.start || '2026-01-01' }} 起，样本内+样本外连续，金色竖线=样本外起点）。分净值＝固定某一锚运行的策略净值（起点=1）；深证成指锚即 C1 轨。样本外段：D3/C1 为官方 OOS 口径（空仓起步）；国证/科创锚为连续展示口径（官方 OOS 未含此二轨）。悬停/点按曲线看当日持仓与买卖。</p>
     <div class="stats panel">
       <div><span>最新净值</span><b class="mono">{{ st ? st.nav.toFixed(3) : '—' }}</b></div>
       <div><span>{{ (nav.start || '').slice(0, 4) }} 收益</span><b class="mono up">{{ st ? pct(st.total_ret) : '—' }}</b></div>
       <div><span>最大回撤</span><b class="mono down">{{ st ? pct(st.max_dd) : '—' }}</b></div>
     </div>
-    <div class="ranges">
+    <div v-if="!compact" class="ranges">
       <button v-for="r in RANGES" :key="r.k" :class="{ on: range === r.k }" @click="range = r.k">{{ r.t }}</button>
     </div>
     <div class="panel chartp"><div ref="el" class="chartbox"></div></div>
@@ -22,6 +23,7 @@ const COLORS: Record<string, string> = { D3: '#E8C06B', C1: '#7FA6D9', G2: '#5FB
 const RANGES = [
   { k: '1m', t: '近1月' }, { k: '3m', t: '近3月' }, { k: 'all', t: '全部' },
 ]
+const props = defineProps<{ compact?: boolean }>()
 const nav = ref<any>({ series: [] })
 const range = ref('all')
 const el = ref<HTMLElement | null>(null)
@@ -79,8 +81,8 @@ function render() {
   chart.setOption({
     animation: false,
     backgroundColor: 'transparent',
-    grid: { left: 46, right: 14, top: 14, bottom: 58 },
-    legend: {
+    grid: { left: 46, right: 14, top: 14, bottom: props.compact ? 8 : 58 },
+    legend: props.compact ? { show: false } : {
       bottom: 0, icon: 'rect', itemWidth: 14, itemHeight: 2,
       textStyle: { color: '#93A7C0', fontSize: 11 },
     },
@@ -144,10 +146,14 @@ watch(range, render)
 .stats > div + div { border-left: 1px solid var(--line-soft); }
 .stats span { display: block; font-size: 11px; color: var(--text-low); letter-spacing: 0.08em; }
 .stats b { font-size: 18px; margin-top: 2px; }
+.compact.stats { margin: 0 0 10px; }
+.compact .stats b { font-size: 15px; }
+.page-wrap.compact { padding: 0 12px 6px; max-width: none; }
 .ranges { display: flex; gap: 6px; margin-bottom: 8px; }
 .ranges button { font-size: 12px; line-height: 22px; padding: 0 10px; border-radius: 5px; background: none; border: 1px solid var(--line); color: var(--text-mid); cursor: pointer; }
 .ranges button.on { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
 .chartp { padding: 8px 6px 4px; }
 .chartbox { width: 100%; height: 440px; }
+.compact .chartbox { height: 258px; }
 @media (max-width: 899px) { .chartbox { height: 300px; } }
 </style>

@@ -1,8 +1,9 @@
 <template>
-  <div class="page-wrap">
-    <h1 class="tt">信号</h1>
-    <p class="sub">全部历史信号 · 按轨筛选 · 标的为同花顺概念指数（885xxx.TI），价格单位为指数点位</p>
-    <div class="filters">
+  <div class="page-wrap" :class="{ compact: compact }">
+    <h1 v-if="!compact" class="tt">信号</h1>
+    <div v-else class="eyebrow">最新信号</div>
+    <p v-if="!compact" class="sub">全部历史信号 · 按轨筛选 · 标的为同花顺概念指数（885xxx.TI），价格单位为指数点位</p>
+    <div v-if="!compact" class="filters">
       <button v-for="f in filters" :key="f" :class="{ on: flt === f }" @click="flt = f">{{ f === 'all' ? '全部' : f }}</button>
     </div>
     <div class="panel table">
@@ -24,6 +25,7 @@
           </tr>
           <tr v-if="!rows.length"><td colspan="8" class="empty">OOS 窗口暂无已平仓或持仓信号</td></tr>
         </tbody>
+        <tfoot v-if="compact"><tr><td colspan="8" class="more"><a href="/signals/">查看全部信号 →</a></td></tr></tfoot>
       </table>
     </div>
   </div>
@@ -31,13 +33,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 const ACT: Record<string, string> = { 买: 'buy', 卖: 'sell', 换: 'sell', 持: 'hold' }
+const { compact } = defineProps<{ compact?: boolean }>()
 const data = ref<any>({ rows: [] })
 const flt = ref('all')
 onMounted(async () => {
   data.value = await (await fetch(import.meta.env.BASE_URL + 'data/signals.json', { cache: 'no-store' })).json()
 })
 const filters = computed(() => ['all', ...new Set(data.value.rows.map((r: any) => r.track))])
-const rows = computed(() => (flt.value === 'all' ? data.value.rows : data.value.rows.filter((r: any) => r.track === flt.value)))
+const rows = computed(() => {
+  const r = flt.value === 'all' ? data.value.rows : data.value.rows.filter((r: any) => r.track === flt.value)
+  return compact ? r.slice(0, 6) : r
+})
 const pct = (v: number) => (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1) + '%'
 </script>
 <style scoped>
@@ -46,6 +52,8 @@ const pct = (v: number) => (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1)
 .filters { display: flex; gap: 6px; margin-bottom: 10px; }
 .filters button { font-size: 12px; line-height: 22px; padding: 0 10px; border-radius: 5px; background: none; border: 1px solid var(--line); color: var(--text-mid); cursor: pointer; }
 .filters button.on { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+.page-wrap.compact { padding: 0 12px 6px; max-width: none; }
+.page-wrap.compact td, .page-wrap.compact th { padding: 7px 8px; font-size: 12px; }
 .table { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th { background: var(--panel-2); color: var(--text-low); font-weight: 500; text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -56,5 +64,6 @@ td i { font-style: normal; color: var(--text-mid); }
 .buy { color: var(--up); } .sell { color: var(--down); } .hold { color: var(--text-mid); }
 .empty { color: var(--text-low); text-align: center; padding: 24px 0; }
 .lg { display: none; }
-@media (min-width: 900px) { .lg { display: table-cell; } td, th { padding: 10px 12px; font-size: 13px; } }
+.page-wrap.compact .lg { display: none !important; }
+@media (min-width: 900px) { .page-wrap:not(.compact) .lg { display: table-cell; } td, th { padding: 10px 12px; font-size: 13px; } }
 </style>

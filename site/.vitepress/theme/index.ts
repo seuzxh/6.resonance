@@ -7,6 +7,7 @@ import RecentFeed from './components/RecentFeed.vue'
 import NavChart from './components/NavChart.vue'
 import SignalTable from './components/SignalTable.vue'
 import ArchiveList from './components/ArchiveList.vue'
+import HomeSide from './components/HomeSide.vue'
 import './custom.css'
 
 export default {
@@ -20,5 +21,6 @@ export default {
     app.component('NavChart', NavChart)
     app.component('SignalTable', SignalTable)
     app.component('ArchiveList', ArchiveList)
+    app.component('HomeSide', HomeSide)
   },
 } satisfies Theme
