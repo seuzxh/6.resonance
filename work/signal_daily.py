@@ -42,7 +42,10 @@ TRACKS = {"D3": list(config.V43_ANCHOR_POOL),
           "A9": list(config.V41_BROAD_POOL), "B13": POOL13, "C1": ["399001.SZ"],
           # 分净值对照轨（站点净值页用，参数同冻结值，纯加法不影响预注册四轨）
           "G2": ["399303.SZ"], "K5": ["000688.SH"]}
-NO_HF_COVER = {"700050.TI"}
+# 无 HF 覆盖跳过名单（2026-09-25 补 932000.CSI：同请求对照复核 0 bar）。
+# 两码已退役（config.RETIRED_NO_HF_CODES，用户指令禁用于新实验）；B13 为
+# 预注册冻结轨不改池名单，其领先日按预注册降级回退日线排序。
+NO_HF_COVER = {"700050.TI", "932000.CSI"}
 # 冻结参数（oos-validation-design §二；改任何一项实验作废）
 FROZEN = V3Params(topk=3, daily_top=5, hl_source="leader", cost_bp=10.0)
 

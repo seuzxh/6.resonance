@@ -21,6 +21,11 @@
 用法：
     conda run -n resonance python work/exp_anchor.py
 产出：outputs/exp_anchor/report.md（表格部分）+ 控制台
+
+注（2026-09-25 用户指令）：700050.TI / 932000.CSI 已退役——HF 端点永久无
+5min 数据（config.RETIRED_NO_HF_CODES），禁止用于新实验。本脚本属已完成
+实验的历史口径，原样保留供复现；如重跑扩展，应先从 ANCHORS/POOL13 剔除
+这两码（入口可调 config.assert_no_retired 自检）。
 """
 from __future__ import annotations
 
