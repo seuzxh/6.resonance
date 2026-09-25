@@ -23,7 +23,7 @@
               <span v-if="!day.signals.length" class="none">当日无信号（闸门未触发或空仓等待）</span>
             </span>
           </div>
-          <div class="row"><span class="k">两轨</span>
+          <div class="row"><span class="k">净值</span>
             <span class="v">
               <span v-for="t in day.tracks.filter(t => SHOW.includes(t.track))" :key="t.track" class="track">
                 <i>{{ t.track }}</i><em class="mono">{{ t.nav.toFixed(3) }} <b :class="t.ret >= 0 ? 'up' : 'down'">{{ pct(t.ret) }}</b></em>
@@ -38,7 +38,7 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-const SHOW = ['D3', 'C1']
+const SHOW = ['D3']   // 卡片头只显 D3；明细行显示全部轨
 const d = ref<any>(null)
 const open = ref(0)
 const days = computed(() => (d.value ? d.value.days : []))

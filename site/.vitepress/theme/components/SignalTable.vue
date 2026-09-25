@@ -51,7 +51,7 @@ const pct = (v: number) => (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1)
 .sub { font-size: 12px; color: var(--text-low); margin-bottom: 12px; }
 .filters { display: flex; gap: 6px; margin-bottom: 10px; }
 .filters button { font-size: 12px; line-height: 22px; padding: 0 10px; border-radius: 5px; background: none; border: 1px solid var(--line); color: var(--text-mid); cursor: pointer; }
-.filters button.on { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+.filters button.on { border-color: rgba(232, 192, 107, 0.35); color: #cbb37e; background: transparent; }
 .page-wrap.compact { padding: 0 12px 6px; max-width: none; }
 .page-wrap.compact td, .page-wrap.compact th { padding: 7px 8px; font-size: 12px; }
 .table { overflow-x: auto; }

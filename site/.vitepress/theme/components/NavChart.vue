@@ -108,11 +108,14 @@ function render() {
           }
           html += `<br/><span style="color:${p.color}">━</span> ${p.seriesName} <b>${Number(p.value).toFixed(3)}</b>${ret}`
         }
-        for (const tr of ['D3', 'C1']) {
+        for (const s of nav.value.series) {
+          const tr = s.track
           const ev = evMap.get(`${tr}|${date}`)
-          if (ev) html += `<br/><span style="color:#E8C06B">${tr} 当日${ev[0]}</span> ${ev[1]} ${ev[2]}`
           const h = holdMap.get(`${tr}|${date}`)
-          if (h && !ev) html += `<br/><span style="color:#5E7391">${tr} 持有</span> ${h}`
+          const nm = tr === 'D3' ? 'D3' : s.name.replace('锚', '').replace('三锚动选（生产）', '')
+          if (ev) html += `<br/><span style="color:#E8C06B">${nm} ${ev[0]}</span> ${ev[1]} ${ev[2]}`
+          else if (h) html += `<br/><span style="color:#5E7391">${nm} 持有</span> ${h}`
+          else html += `<br/><span style="color:#3D4F66">${nm} 空仓</span>`
         }
         return html
       },
@@ -151,7 +154,7 @@ watch(range, render)
 .page-wrap.compact { padding: 0 12px 6px; max-width: none; }
 .ranges { display: flex; gap: 6px; margin-bottom: 8px; }
 .ranges button { font-size: 12px; line-height: 22px; padding: 0 10px; border-radius: 5px; background: none; border: 1px solid var(--line); color: var(--text-mid); cursor: pointer; }
-.ranges button.on { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+.ranges button.on { border-color: rgba(232, 192, 107, 0.35); color: #cbb37e; background: transparent; }
 .chartp { padding: 8px 6px 4px; }
 .chartbox { width: 100%; height: 440px; }
 .compact .chartbox { height: 258px; }
