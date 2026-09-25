@@ -206,21 +206,24 @@ def build_nav(names: dict, as_of: str) -> dict:
     series, stats = [], {}
     for tr in NAV_TRACKS:
         f = OUT / f"nav_{tr}.csv"
-        if not f.exists():
-            continue
-        official = _nav(tr)                     # OOS 官方（1.0 起，空仓起步）
-        prev_day = str((official.index[0] - pd.Timedelta(days=1)).date())
+        official = _nav(tr) if f.exists() else None   # G2/K5 等新轨官方文件未生成前走连续展示口径
+        end_in = str((official.index[0] - pd.Timedelta(days=1)).date()) if official is not None else as_of
         try:
-            out = replay_display(tr, prev_day)  # 样本内展示重放
+            out = replay_display(tr, end_in)
             nav_in = out["nav_curve"]
             tr_in = out["trades"]
             hold_in = out["holdings"]
         except Exception as ex:  # noqa: BLE001
-            print(f"[publish] 警告：{tr} 展示重放失败（{str(ex)[:60]}），仅发布 OOS 窗")
+            print(f"[publish] 警告：{tr} 展示重放失败（{str(ex)[:60]}）")
+            if official is None:
+                continue                            # 无官方可退，跳过该轨
             nav_in, tr_in, hold_in = None, None, None
         if nav_in is not None:
-            scale = float(nav_in.iloc[-1])
-            nav = pd.concat([nav_in, official * scale])
+            if official is not None:
+                scale = float(nav_in.iloc[-1])
+                nav = pd.concat([nav_in, official * scale])   # 样本外=官方口径（空仓起步）
+            else:
+                nav = nav_in                                   # 样本外=连续展示口径
         else:
             nav, scale = official, 1.0
         pts = [[str(d.date()), round(float(v), 4)] for d, v in nav.items()]
@@ -235,21 +238,23 @@ def build_nav(names: dict, as_of: str) -> dict:
                     seen.add(k)
                     events.append([k[0], ACT.get(r["type"], r["type"]),
                                    code.replace(".TI", ""), names.get(code, code)])
-        for _, r in _trades(tr).iterrows():      # OOS 官方事件
-            to = r["to"] if isinstance(r["to"], str) else ""
-            fr = r["from"] if isinstance(r["from"], str) else ""
-            code = to or fr
-            events.append([str(pd.Timestamp(r["date"]).date()), ACT.get(r["type"], r["type"]),
-                           code.replace(".TI", ""), names.get(code, code)])
+        if official is not None:
+            for _, r in _trades(tr).iterrows():  # OOS 官方事件
+                to = r["to"] if isinstance(r["to"], str) else ""
+                fr = r["from"] if isinstance(r["from"], str) else ""
+                code = to or fr
+                events.append([str(pd.Timestamp(r["date"]).date()), ACT.get(r["type"], r["type"]),
+                               code.replace(".TI", ""), names.get(code, code)])
         holdings = []
         if hold_in is not None and len(hold_in):
             for d, row in hold_in.iterrows():
                 h = row.get("holding")
                 if isinstance(h, str) and h:
                     holdings.append([str(pd.Timestamp(d).date()), h.replace(".TI", ""), names.get(h, h)])
-        for d, code, raw in _holdings_from_trades(_trades(tr), official.index[0],
-                                                  pd.Timestamp(as_of)):
-            holdings.append([d, code, names.get(raw, raw)])
+        if official is not None:
+            for d, code, raw in _holdings_from_trades(_trades(tr), official.index[0],
+                                                      pd.Timestamp(as_of)):
+                holdings.append([d, code, names.get(raw, raw)])
         series.append({"track": tr, "name": TRACK_NAMES[tr], "points": pts,
                        "events": events, "holdings": holdings})
         if tr == "D3":
@@ -257,7 +262,7 @@ def build_nav(names: dict, as_of: str) -> dict:
             stats["D3"] = {"nav": round(float(nav.iloc[-1]), 4),
                            "total_ret": round(float(st["total_return"]), 4),
                            "max_dd": round(float(st["max_drawdown"]), 4)}
-    return {"version": 1, "start": NAV_START, "oos_start": str(official.index[0].date()) if len(series) else "",
+    return {"version": 1, "start": NAV_START, "oos_start": "2026-09-22",
             "as_of": series[0]["points"][-1][0] if series else "",
             "stats": stats, "series": series}
 

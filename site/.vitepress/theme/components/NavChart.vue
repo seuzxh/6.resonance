@@ -1,7 +1,7 @@
 <template>
   <div class="page-wrap">
     <h1 class="tt">净值</h1>
-    <p class="sub">D3 整体净值 × 三锚分净值（{{ nav.start || '2026-01-01' }} 起，样本内+样本外连续，金色竖线=样本外起点）。分净值＝固定某一锚运行的策略净值（起点=1）；深证成指锚即 C1 轨。悬停/点按曲线看当日持仓与买卖。</p>
+    <p class="sub">D3 整体净值 × 三锚分净值（{{ nav.start || '2026-01-01' }} 起，样本内+样本外连续，金色竖线=样本外起点）。分净值＝固定某一锚运行的策略净值（起点=1）；深证成指锚即 C1 轨。样本外段：D3/C1 为官方 OOS 口径（空仓起步）；国证/科创锚为连续展示口径（官方 OOS 未含此二轨）。悬停/点按曲线看当日持仓与买卖。</p>
     <div class="stats panel">
       <div><span>最新净值</span><b class="mono">{{ st ? st.nav.toFixed(3) : '—' }}</b></div>
       <div><span>{{ (nav.start || '').slice(0, 4) }} 收益</span><b class="mono up">{{ st ? pct(st.total_ret) : '—' }}</b></div>
