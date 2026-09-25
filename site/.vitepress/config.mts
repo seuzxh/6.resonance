@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
+  // 子路径部署开关：GitHub Pages 项目页传 VITEPRESS_BASE=/6.resonance/；
+  // 缺省 '/'（EdgeOne 自有域名根路径，行为不变）
+  base: process.env.VITEPRESS_BASE ?? '/',
   title: '共振 · 信号站',
   description: '指数锚共振信号站 · D3 生产轨 / C1 深证单锚对照',
   appearance: false,          // 仪器盘固定暗色，不提供切换
