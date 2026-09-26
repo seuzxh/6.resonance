@@ -109,7 +109,7 @@
   `possitive` 为原始拼写；响应 content-type=text/plain 但 body 是 JSON。
   入库：`data/cache/moneyflow_{hourly,concept}.parquet`（work/collect_moneyflow.py、
   collect_concepts_moneyflow.py）。
-- **日线替代链路**：iFinD 配额尽时走本地 qlib bin（`work/collect_v41_qlib.py`：
+- **日线替代链路**：iFinD 配额尽时走本地 qlib bin（`collect_v41_qlib.py`（已随 09-26 重组清理，git 可溯）：
   bin[0]=起始日历下标解码 + 4 指数滑动对齐交叉验证）。
 - **概念目录**：529 快照幸存者偏差；886 段有激活日递进（窗口完整性自动排除）。
 - **凭证**：access_token 缓存 /home/zxh/qlib_data/.ifind_token（多项目共享，

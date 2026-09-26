@@ -111,7 +111,7 @@ for (const f of srcFiles) {
   text = text.replaceAll('](diagrams/', '](/diagrams/')
   text = text.replace(/\]\((?:\.\.\/)+diagrams\//g, '](/diagrams/')
   // 指向未发布路径的链接（子目录文档可出现多层 ../）→ 纯文字注记
-  text = text.replace(/\[([^\]]+)\]\((?:\.\.\/)+(outputs|work)\/[^)]+\)/g,
+  text = text.replace(/\[([^\]]+)\]\((?:\.\.\/)+(outputs|ops|research|archive)\/[^)]+\)/g,
     '$1（仓库内路径：…/$2/…）')
   const title = titleByFile[f] || firstHeading(text)
   const fm = text.startsWith('---') ? '' :

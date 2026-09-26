@@ -1,8 +1,8 @@
 """发布层：outputs/oos/*.csv → site/public/data/*.json → git commit + push。
 
-挂在 work/signal_daily.py 尾部自动执行，也可手动：
-    python work/publish_site.py             # 校验 + 写 JSON + commit + push
-    python work/publish_site.py --dry-run   # 校验 + 写 JSON，不动 git（自检用）
+挂在 ops/signal_daily.py 尾部自动执行，也可手动：
+    python ops/publish_site.py             # 校验 + 写 JSON + commit + push
+    python ops/publish_site.py --dry-run   # 校验 + 写 JSON，不动 git（自检用）
 
 契约 v1（site/.vitepress/theme/components 消费）：
     recent.json   近 5 日日报流（锚相位 / 信号 / 两轨净值）
@@ -171,7 +171,7 @@ def replay_display(track: str, end_date: str) -> dict:
     if (track, end_date) in _REPLAY_CACHE:
         return _REPLAY_CACHE[(track, end_date)]
     from resonance.v3 import MinuteBarProvider, V3Backtester
-    from work import signal_daily as sd
+    from ops import signal_daily as sd
     close_all, concepts = sd.load_wide()
     m5 = pd.read_parquet(config.CACHE_DIR / "minute5_bars.parquet")
     m5["datetime"] = pd.to_datetime(m5["datetime"])

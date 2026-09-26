@@ -1,7 +1,7 @@
 """采集数据验证：schema / 交易日网格 / 字段自洽 / 跨源抽查 / 新概念分布。
 
 用法：
-    conda run -n resonance python work/validate_data.py
+    conda run -n resonance python ops/validate_data.py
 
 对照源：
 1. 本地 qlib 库 ~/.qlib/qlib_data/cn_data（沪深300 等宽基，独立数据链路）

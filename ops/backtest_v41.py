@@ -16,7 +16,7 @@
     纯日线排序：10bp +67.05%/−21.63%/1.67
 
 用法：
-    conda run -n resonance python work/backtest_v41.py
+    conda run -n resonance python ops/backtest_v41.py
 产出：outputs/v4/{nav_curves.csv, trades.csv, phase_table.csv}
 """
 from __future__ import annotations
@@ -31,7 +31,7 @@ import pandas as pd  # noqa: E402
 
 from resonance import config  # noqa: E402
 from resonance.v3 import MinuteBarProvider, V3Params  # noqa: E402
-from work.backtest_v3 import evaluate, load_wide  # noqa: E402
+from ops.backtest_v3 import evaluate, load_wide  # noqa: E402
 
 OUT_DIR = config.OUTPUTS_DIR / "v4"
 V41_PHASES = ["2025-09-22", "2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26"]

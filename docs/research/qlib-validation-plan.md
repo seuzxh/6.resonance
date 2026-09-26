@@ -7,7 +7,7 @@
 > **零网络、零生产参数改动、零 bin 文件**。本文件为预注册实验设计
 > （experiment-playbook §五检查清单逐条回答见 §七）。
 >
-> 状态：**P0 冒烟已通过（2026-09-26，work/qlib_smoke.py），其余未开跑**；
+> 状态：**P0 冒烟已通过（2026-09-26，research/qlib_smoke.py），其余未开跑**；
 > 实施前需用户确认 §八 待决策项。
 
 ## 一、验证什么：三问分解（qlib 的诚实定位）
@@ -41,7 +41,7 @@
 
 ## 二、已验证的技术事实（P0 冒烟，2026-09-26）
 
-`work/qlib_smoke.py`（conda env `qlib`）已用**真实 parquet 数据**
+`research/qlib_smoke.py`（conda env `qlib`）已用**真实 parquet 数据**
 （daily_bars 4 码 × 2026-06~09-18）跑通完整回测循环：
 TopkDropoutStrategy(topk=1) + SimulatorExecutor + backtest_loop →
 79 交易日 portfolio_metrics（return/turnover/cost/bench），基准为
@@ -90,10 +90,10 @@ data/cache/daily_bars.parquet
 
 **环境分工及其硬理由**：
 
-- `resonance` env（pandas 3.0.5，无 pyqlib）：信号计算（`work/qlib_bridge_export.py`）、
+- `resonance` env（pandas 3.0.5，无 pyqlib）：信号计算（`research/qlib_bridge_export.py`）、
   参考引擎重跑、ReplayBacktester。**pyqlib 不装进此环境**。
 - `qlib` env（pyqlib 0.9.7，pandas 2.3.3）：适配层 + ResonanceStrategy +
-  分析（`work/qlib_equivalence.py`、`work/qlib_analysis.py`）。
+  分析（`research/qlib_equivalence.py`、`research/qlib_analysis.py`）。
 - **为什么不用单环境跑通**：pandas 2 与 3 的 `pct_change` 缺省填充语义不同
   （2.x 默认 ffill 填充、3.x 不填充），`resonance/v3.py` 的信号对概念前导
   NaN 敏感——跨版本运行同一信号代码会引入**不可见的数据差**。两环境以
@@ -105,11 +105,11 @@ data/cache/daily_bars.parquet
 
 ### P0 环境与免 bin 链路冒烟 —— ✅ 已完成（2026-09-26）
 
-`work/qlib_smoke.py` 通过（§二）。适配层的全部集成点已钉死并随脚本归档。
+`research/qlib_smoke.py` 通过（§二）。适配层的全部集成点已钉死并随脚本归档。
 
 ### P1 适配层固化 + 规范化门 D-Gate（1 天）
 
-**任务**：把冒烟里的临时拼装固化为 `work/qlib_harness.py`（qlib env）：
+**任务**：把冒烟里的临时拼装固化为 `research/qlib_harness.py`（qlib env）：
 
 - `build_quote(bars_df) -> pd.DataFrame`：parquet → 标准 quote_df
   （E-7 日期转换、float32 cast、$factor=1.0、$change、多码宽→长整形）。
@@ -128,11 +128,11 @@ data/cache/daily_bars.parquet
    `limit_buy/limit_sell=True`（E-3 `_update_limit` 语义生效）。
 3. `tests/test_qlib_harness.py`（resonance env 离线）：不 import qlib 的
    纯函数部分（quote 构造、日期转换、字段补全）单元测试；qlib 端集成
-   冒烟沿用 `work/qlib_smoke.py` 模式（离线跑真数据 1 码小窗）。
+   冒烟沿用 `research/qlib_smoke.py` 模式（离线跑真数据 1 码小窗）。
 
 ### P2 信号桥 + 执行解耦（1–2 天）
 
-**任务**（resonance env，`work/qlib_bridge_export.py`）：
+**任务**（resonance env，`research/qlib_bridge_export.py`）：
 
 - `outputs/qlib_bridge/final_rank.parquet`：逐日全序最终榜（含 V4.1 分钟
   重排层），列 `date, rank, concept, score, leader, gate, half_life,
@@ -214,7 +214,7 @@ ReplayBacktester 与 V3Backtester **逐笔交易 100% 一致**（date/type/from/
 
 | # | 风险 | 对策 |
 |---|---|---|
-| R1 | pyqlib 升级破坏桩/覆写点（Cal 替换、get_quote_from_qlib、C 键） | 适配层版本断言锁 0.9.7；升级需重跑 `work/qlib_smoke.py` 冒烟 |
+| R1 | pyqlib 升级破坏桩/覆写点（Cal 替换、get_quote_from_qlib、C 键） | 适配层版本断言锁 0.9.7；升级需重跑 `research/qlib_smoke.py` 冒烟 |
 | R2 | float32 量化使阈值附近决策翻转 | 两端引擎统一吃 float32 cast 矩阵（P2 ref_runs 口径），决策一致性由构造保证；报告注明与 float64 口径终值差（信息性） |
 | R3 | qlib Exchange 成本/成交细节不可配平 | E-Gate 兜底 + 保底方案 B（§四 P3.4） |
 | R4 | 概念前导 NaN / 激活日语义丢失 | D-Gate 第 1/2 条验收（NaN 位置相等 + 停牌标记）；信号端 eligibility 规则不变 |
@@ -228,7 +228,7 @@ ReplayBacktester 与 V3Backtester **逐笔交易 100% 一致**（date/type/from/
 | 阶段 | 产出 | 门槛（预注册） | 状态/预估 |
 |---|---|---|---|
 | P0 | 免 bin 链路冒烟 + 8 集成点钉死 | 真数据回测循环跑通 | ✅ 2026-09-26 |
-| P1 | `work/qlib_harness.py` 适配层 + 测试 | D-Gate 三条全过 | 1 天 |
+| P1 | `research/qlib_harness.py` 适配层 + 测试 | D-Gate 三条全过 | 1 天 |
 | P2 | 信号桥 + ref_runs + ReplayBacktester | G2 逐笔 100% | 1–2 天 |
 | P3 | ResonanceStrategy + 等价矩阵 | E-Gate 四条全过 | 2–3 天 |
 | P4 | IC 诊断 + 报表 + 归因对照 | 报告落盘 | 1 天 |

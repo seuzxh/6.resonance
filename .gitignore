@@ -22,10 +22,11 @@ outputs/**/*.html
 outputs/**/*.json
 outputs/**/*.parquet
 
-# logs & tmp
+# logs & tmp（任意层级 tmp/ 物理防线，见 research/README 纪律）
 logs/
 .ipynb_checkpoints/
 /tmp/
+tmp/
 .worktrees/
 
 # site build artifacts
@@ -38,5 +39,6 @@ site/docs/
 site/public/diagrams/
 site/.vitepress/docs-manifest.json
 
-# codegraph 本地符号索引（会话工具产物）
+# 会话工具产物（codegraph 索引 / zcode 计划文件）
 .codegraph/
+.zcode/

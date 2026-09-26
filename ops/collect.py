@@ -1,8 +1,8 @@
 """数据采集：概念目录快照 + 13 宽基指数与全部概念指数日线落盘。
 
 用法：
-    conda run -n resonance python work/collect.py            # 全量
-    conda run -n resonance python work/collect.py --catalog-only
+    conda run -n resonance python ops/collect.py            # 全量
+    conda run -n resonance python ops/collect.py --catalog-only
 
 产出（均 gitignored）：
     data/concept_catalog.csv        概念目录快照（code, name, snapshot_date）

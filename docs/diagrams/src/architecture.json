@@ -128,7 +128,7 @@
       ],
       "sources": [
         {
-          "path": "work/collect.py",
+          "path": "ops/collect.py",
           "label": "日线采集"
         }
       ]
@@ -148,7 +148,7 @@
       ],
       "sources": [
         {
-          "path": "work/collect_minute5.py",
+          "path": "ops/collect_minute5.py",
           "label": "5min 采集"
         }
       ]
@@ -190,7 +190,7 @@
       ],
       "sources": [
         {
-          "path": "work/signal_daily.py",
+          "path": "ops/signal_daily.py",
           "label": "runner"
         }
       ]

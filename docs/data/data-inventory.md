@@ -18,7 +18,7 @@
 **重要**：`data/` 下所有行情文件均被 `.gitignore` 排除（`data/cache/`、
 `data/*.parquet`、`data/*.csv`）——行情只存在本地磁盘，**没有 git 恢复渠道**，
 灾备依赖采集脚本重放（§五）与外部 qlib 库。`data/concept_catalog.csv` 同样
-不入库（快照文件，可由 `work/collect.py --catalog-only` 重建）。
+不入库（快照文件，可由 `ops/collect.py --catalog-only` 重建）。
 
 ## 二、行情数据集明细
 
@@ -70,7 +70,7 @@ master 快照：同文件（09-26 并回后单一副本；此前 400 标的 / 1,
 
 198,312 行 × 207 标的（分钟验证窗 Top10 并集清单），4 bar/日
 （10:30/11:30/14:00/15:00），2025-09-22 ~ 2026-09-18。2026-09-26 起同样支持
-9 指标扩展（`work/collect_minute.py --backfill` 回补，全量约 1.78M dataVol），
+9 指标扩展（`ops/collect_minute5.py --backfill` 回补，全量约 1.78M dataVol），
 默认不回补。时点择时探索已证伪（2026-09-19），**不再增量更新**，仅作历史
 归档与后续研究复用；任何用途需先读 experiment-playbook §三负结论登记。
 
@@ -83,7 +83,7 @@ master 快照：同文件（09-26 并回后单一副本；此前 400 标的 / 1,
 
 4 标的（883957.TI / 000680.SH / 399006.SZ / 700050.TI）× 15 日的 iFinD
 抽查值（close, pct_chg），2026-08-31~09-18。用于双通道交叉验证
-（`work/validate_data.py`），防止采集链路口径漂移。
+（`ops/validate_data.py`），防止采集链路口径漂移。
 
 ### 6. 元数据与审计文件
 
@@ -104,7 +104,7 @@ master 快照：同文件（09-26 并回后单一副本；此前 400 标的 / 1,
 | `~/.qlib/qlib_data/cn_data` | 个股日线 bin（~5,590 目录，7 字段后复权+factor） | day.txt 随外部 cron（工作日 15:30，`/home/zxh/qlib_data/scripts/cron_daily.sh`，中焯 K 线 API）日更至 2026-09-24；其 1min/5min 日历 2026-07 后停更 |
 | `~/.qlib/qlib_data/cn_data_1min` | 个股 1min bin | 1min.txt 日更至 2026-09-24 |
 
-本项目仅在 iFinD 配额耗尽时走 `work/collect_v41_qlib.py` 读取其中
+本项目仅在 iFinD 配额耗尽时走 collect_v41_qlib.py（已随 09-26 重组清理，git 可溯）读取其中
 000001.SH / 399001.SZ 两指数日线 bin。解码口径：`bin[0]`=起始日历下标
 （对齐锚 b0=1152，4 指数滑动对齐交叉验证），amount 字段 dump 损坏弃用。
 
@@ -127,15 +127,15 @@ master 快照：同文件（09-26 并回后单一副本；此前 400 标的 / 1,
 
 ## 五、采集与更新链路
 
-| 脚本（work/） | 数据源 | 产出 |
+| 脚本（ops/ 现役；†=已清理 git 可溯） | 数据源 | 产出 |
 |---|---|---|
 | `collect.py` | iFinD history_data（10 码/请求，断点续采） | concept_catalog + 全量日线 |
 | `collect_minute5.py` | iFinD high_frequency（按需矩阵：信号日+3 日回看；09-26 起 9 指标直取，`--backfill` 回补 close-only 历史） | minute5_bars（全时段） |
-| `collect_v41.py` | iFinD（V4.1 两新代码日线+5min） | 增量并入 daily/minute5 |
-| `collect_v41_topup.py` | iFinD HF（下午盘 24bar 省配额口径） | 9 池 Top5 概念 5min 增量 + audit |
-| `collect_hist_2022.py` | iFinD（2021-12→2024-10 长区间单请求） | 日线前段扩展 |
-| `collect_v41_qlib.py` | 本地 qlib bin（只读） | 000001.SH/399001.SZ 日线补采 |
-| `collect_minute.py` | iFinD HF（60min；09-26 起支持 9 指标 `--backfill` 回补） | minute_bars（已封存） |
+| `collect_v41.py`† | iFinD（V4.1 两新代码日线+5min） | 增量并入 daily/minute5 |
+| `collect_v41_topup.py`† | iFinD HF（下午盘 24bar 省配额口径） | 9 池 Top5 概念 5min 增量 + audit |
+| `collect_hist_2022.py`† | iFinD（2021-12→2024-10 长区间单请求） | 日线前段扩展 |
+| `collect_v41_qlib.py`† | 本地 qlib bin（只读） | 000001.SH/399001.SZ 日线补采 |
+| `collect_minute.py`† | iFinD HF（60min；09-26 起支持 9 指标 `--backfill` 回补） | minute_bars（已封存） |
 | `signal_daily.py` | iFinD（增量日线 + 自愈分钟（09-26 起全指标直取）+ 无状态重放） | OOS 四轨信号与净值，**并日增 data/cache** |
 
 运行纪律（09-24 事故后固化）：runner **只能在 15:05 后跑**（盘中硬闸）；

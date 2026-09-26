@@ -11,7 +11,7 @@
 | 轨 | 池/锚 | 参数 |
 |---|---|---|
 | A（生产轨） | 9 池动态锚（config.V41_BROAD_POOL） | V4.2 冻结值 |
-| B（对照轨） | 13 池动态锚（work/collect_v41_topup.py POOL13） | 同 V4.2 冻结值 |
+| B（对照轨） | 13 池动态锚（POOL13；补采脚本已随 09-26 重组清理，git 可溯） | 同 V4.2 冻结值 |
 | C（锚轨，2026-09-23 增） | 固定深证成指锚（399001.SZ 单元素池） | 同 V4.2 冻结值 |
 | **D（生产主轨，2026-09-23 增）** | **V4.3 三锚动选**（config.V43_ANCHOR_POOL：深证成指/国证2000/科创50） | 同 V4.2 冻结值（docs/spec/v43-best-plan.md） |
 
@@ -40,7 +40,7 @@ V3Params(topk=3, daily_top=5, hl_source="leader",
    （预计 2026-10-01，或用户提供新 token 时立即启动）。runner 已用缓存内
    窗口完成机制验收（`--oos-start 2026-09-10` 离线重放全链路正常）。原则
    不变：起点前的数据全部属于样本内，不得进入 OOS 统计。
-2. **每日**：收盘后运行 `work/signal_daily.py`（增量采集→自愈分钟补齐→
+2. **每日**：收盘后运行 `ops/signal_daily.py`（增量采集→自愈分钟补齐→
    无状态全窗重放→信号落盘 outputs/oos/）。信号 T 收盘生成、T+1 收盘
    执行（纸面跟踪执行价，无实盘）。
    配图：[OOS 每日运行流程图](../diagrams/oos-daily-workflow.html)（三道数据
@@ -79,7 +79,7 @@ V3Params(topk=3, daily_top=5, hl_source="leader",
 
 ## 七、工具与产物
 
-- `work/signal_daily.py`：每日 runner（增量日线采集 → 当日 Top5+领先尾盘
+- `ops/signal_daily.py`：每日 runner（增量日线采集 → 当日 Top5+领先尾盘
   5min 补齐 → OOS 起点无状态重放 → 信号/审计落盘）。
 - `outputs/oos/signals_{A9,B13}.csv`：逐日信号与执行指令；
   `outputs/oos/nav_{A9,B13}.csv`：双轨纸面净值；`outputs/oos/audit.md`：

@@ -40,13 +40,13 @@ git 历史（≤0790071）完整可溯；在位方法论沉淀：
 
 ```bash
 conda run -n resonance python -m pytest -q          # 离线测试（全 mock）
-conda run -n resonance python work/probe.py         # iFinD 冒烟（需网络+凭证）
-conda run -n resonance python work/signal_daily.py  # 每日 OOS runner（D3 主轨）
-conda run -n resonance python work/validate_data.py      # 数据体检
-conda run -n resonance python work/collect.py            # 日线采集（断点续传）
-conda run -n resonance python work/collect_minute5.py    # 5min 采集（需求矩阵裁剪）
-conda run -n resonance python work/backtest_v3.py        # V3 栈锚点对照 + 相位表
-conda run -n resonance python work/backtest_v41.py       # V4.1 分钟重排栈复现
+conda run -n resonance python ops/probe.py         # iFinD 冒烟（需网络+凭证）
+conda run -n resonance python ops/signal_daily.py  # 每日 OOS runner（D3 主轨）
+conda run -n resonance python ops/validate_data.py      # 数据体检
+conda run -n resonance python ops/collect.py            # 日线采集（断点续传）
+conda run -n resonance python ops/collect_minute5.py    # 5min 采集（需求矩阵裁剪）
+conda run -n resonance python ops/backtest_v3.py        # V3 栈锚点对照 + 相位表
+conda run -n resonance python ops/backtest_v41.py       # V4.1 分钟重排栈复现
 ```
 
 凭证不进仓库：refresh_token 从 `/home/zxh/qlib_data/scripts/` 全局源或环境变量
@@ -57,7 +57,8 @@ conda run -n resonance python work/backtest_v41.py       # V4.1 分钟重排栈�
 
 ```
 resonance/     Python 包：config / ifind 客户端 / metrics 共振指标 / backtest 轮动引擎 / v3 现行引擎
-work/          运维脚本（采集、回测复现、每日 OOS runner、站点发布）
+ops/           生产与运维脚本（采集、数据体检、回测复现、每日 OOS runner、站点发布）
+research/      探索验证脚本（预注册实验实施，收口即清理）
 tests/         离线单元测试（全部 mock）
 data/          本地缓存（gitignored）
 outputs/       交付物（exp_anchor / exp_hist_2022 / oos）

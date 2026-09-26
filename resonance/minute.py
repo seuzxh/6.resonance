@@ -11,7 +11,7 @@
   分钟数据留存起点（2025-09-25）→ 同样退化为纯日线；
 - 最终排名喂 RotationBacktester（Top5 缓冲 / corr1>0 门槛 / exec_lag）。
 
-5min 数据按 (code,day) 需求矩阵裁剪采集——见 work/collect_minute5.py。
+5min 数据按 (code,day) 需求矩阵裁剪采集——见 ops/collect_minute5.py。
 """
 from __future__ import annotations
 

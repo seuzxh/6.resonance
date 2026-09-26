@@ -4,7 +4,7 @@
 > **寻优（训练）与每日预测（推理）是两个独立过程**，通过不可变的
 > **冻结规格**（工件）解耦——研究轨只写结论与规格，运行轨只读规格，
 > 互不调用、失败域隔离。工件本体在代码（`config.V43_ANCHOR_POOL` +
-> `work/signal_daily.py FROZEN`），文档是规格的叙述面，git commit 即版本号；
+> `ops/signal_daily.py FROZEN`），文档是规格的叙述面，git commit 即版本号；
 > 「评价期禁改参」= 晋升门，新版本只能整体替换、不能原地修改。
 
 ## spec/ 冻结规格（产物层——两过程的唯一接口）
@@ -16,7 +16,7 @@
 
 - [oos-validation-design.md](ops/oos-validation-design.md) — OOS 四轨 runner
   预注册设计：判据、运行纪律与三道数据防线。runner 为
-  `work/signal_daily.py`（15:05 后运行、OOS 起点无状态重放、幂等）。
+  `ops/signal_daily.py`（15:05 后运行、OOS 起点无状态重放、幂等）。
 
 ## research/ 寻优研究（历史过程——写侧）
 

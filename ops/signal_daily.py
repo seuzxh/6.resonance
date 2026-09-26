@@ -1,9 +1,9 @@
 """样本外验证每日 runner（docs/ops/oos-validation-design.md，2026-09-22 启动）。
 
 用法（每日收盘后）：
-    conda run -n resonance python work/signal_daily.py            # 双轨（9池+13池）
-    conda run -n resonance python work/signal_daily.py --date 2026-09-23
-    conda run -n resonance python work/signal_daily.py --track A9   # 单轨
+    conda run -n resonance python ops/signal_daily.py            # 双轨（9池+13池）
+    conda run -n resonance python ops/signal_daily.py --date 2026-09-23
+    conda run -n resonance python ops/signal_daily.py --track A9   # 单轨
 
 流程（每轨）：
 1. 增量日线：缓存全部 codes 补至 --date（iFinD history_data，10/批）；
@@ -232,7 +232,7 @@ def main() -> int:
         print(f"[OK] 落盘 {OUT_DIR}/trades_{track}.csv / nav_{track}.csv")
     # 发布层：产物 → site/public/data/*.json → git push（失败不影响已落盘信号）
     try:
-        from work.publish_site import main as publish_main
+        from ops.publish_site import main as publish_main
         rc = publish_main([])
         if rc != 0:
             print("[publish] 发布未完成（站点停在上一版），信号数据本身已落盘")

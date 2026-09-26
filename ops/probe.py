@@ -1,7 +1,7 @@
 """部署冒烟测试：token 链路 + 四指数行情拉取（对应 GPT 会话 work/probe.py）。
 
 用法：
-    conda run -n resonance python work/probe.py
+    conda run -n resonance python ops/probe.py
 
 只做 1 次轻量请求（近 10 个交易日、4 个指数），验证凭证与网关可用。
 """

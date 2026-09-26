@@ -1,10 +1,10 @@
 """5min 分钟数据按需采集：(code,day) 需求矩阵裁剪 + 区间合并请求 + 覆盖感知断点。
 
 用法：
-    conda run -n resonance python work/collect_minute5.py               # 增量（新日期/新代码）
-    conda run -n resonance python work/collect_minute5.py --dry-run     # 只报请求量与预估 dataVol
-    conda run -n resonance python work/collect_minute5.py --backfill --from 2026-09-01
-    conda run -n resonance python work/collect_minute5.py --backfill --codes 885311.TI,883957.TI
+    conda run -n resonance python ops/collect_minute5.py               # 增量（新日期/新代码）
+    conda run -n resonance python ops/collect_minute5.py --dry-run     # 只报请求量与预估 dataVol
+    conda run -n resonance python ops/collect_minute5.py --backfill --from 2026-09-01
+    conda run -n resonance python ops/collect_minute5.py --backfill --codes 885311.TI,883957.TI
 
 成本工程（docs/research/minute-resonance-design.md v3）：5min=48bar/日。需求 = 日线池
 （v3：短窗 w∈{2..5} 的 Top10，逐日并集）成员的信号日 + 3 日回看，仅限分钟

@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import pandas as pd
 import pytest
 
-import work.signal_daily as sd
+import ops.signal_daily as sd
 
 
 def test_update_daily_overwrites_stale_and_fills_laggard(tmp_path, monkeypatch):

@@ -69,7 +69,7 @@ B13（13 池对照）、C1（单锚深证成指对照）并行；≥60 信号日
 ## 五、复现
 
 ```bash
-conda run -n resonance python work/signal_daily.py          # 每日 OOS（D3 主轨）
+conda run -n resonance python ops/signal_daily.py          # 每日 OOS（D3 主轨）
 ```
 
 

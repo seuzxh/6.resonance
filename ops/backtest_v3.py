@@ -1,7 +1,7 @@
 """V3 最佳方案锚点对照 + 相位稳健性基线（docs/v3-best-plan.md）。
 
 用法：
-    conda run -n resonance python work/backtest_v3.py
+    conda run -n resonance python ops/backtest_v3.py
 
 对照锚点（V3 文档 §9，GPT 会话 2025-01-01~2026-09-18，~390 概念目录）：
     0bp:  +299.11% 回撤 −19.16% 夏普 2.64（2025 +116.08% / 2026 +84.71%）
