@@ -92,6 +92,7 @@ resonance/
 | `config.py` 三池（`V43_ANCHOR_POOL`/`V41_BROAD_POOL`/`BROAD_INDEX_POOL`）、`RETIRED_NO_HF_CODES`+`assert_no_retired` | `specs.py` | |
 | `minute.py` 采集常量（`MINUTE_INTERVAL` 等，`collect_minute5` 在用） | `core/config.py` | |
 | `metrics.py`、`minute.py` 其余、`RotationBacktester`、`SIGNAL_WINDOW` 等 GPT 参数 | **删除** | 实施时以 grep 引用核实；`BENCHMARK_INDEXES`/`BACKTEST_START` 等疑似无引用者同规则处理，发现仍有生产引用则迁 specs 并在 PR 记录 |
+| `v3.py` 资金流研究钩子（`entry_gate`/`exit_grid`/`post_rank` 及 `flow_exit` 分支） | **删除** | 2026-09-26 查实仅 test_v3 的钩子用例在引用，生产零消费者（实验已收口，结论在 moneyflow-gate-plan §八）；对应测试随删。§十规则③的现成执行 |
 | `publish_site.py` | 见 §六 | |
 | `__init__.py` docstring | 更新 | 现述「相关性分析与轮动回测」已过时 |
 
@@ -157,3 +158,22 @@ V3 规格族语义，改名噪音大于收益，版本语义由 specs 承载）�
 Protocol 抽象（qlib 备用链路是独立引擎复算、parquet 直驱，不是本包的
 第二个 repo 实现，等真有第二消费者再抽象）；不动 docs 目录结构与 site/
 前端；不改任何数值语义与参数；不改四个站点 JSON 的格式。
+
+## 十、探索脚本（research/）与实验生命周期
+
+research/ 与 ops/ 同级的消费面组装根：探索脚本可 import services
+（复用回测/绩效用例，不再从 ops 抄编排逻辑）或直调 domain 做纯计算
+变体；入口纪律不变（playbook §五检查清单 + `specs.assert_no_retired`）。
+实验代码按生命周期落位，包内不积累实验残渣：
+
+1. **进行中**：`research/<脚本>.py`（一次性代码，git 可溯即其档案）；
+2. **收口**（无论采纳与否）：脚本删除（40a9532 先例）。存活三样——
+   结论进 docs/research/、数据表进 outputs/、若采纳则参数组合作为新
+   版本工件整体写入 specs.py（晋升门：版本整体替换）。**采纳的实验
+   留下参数，不留代码**；
+3. **需新内核能力的探索**：钩子先以默认 None 的参数挂在
+   domain/engine 上做实验；采纳则保留为通用钩子，证伪则随脚本删除
+   （§四资金流钩子行即本规则的执行）。
+
+存量处置：未采纳实验的脚本已随收口清理（结论并入 docs/research/ 各
+计划文档），research/ 现仅存活跃探索（qlib_smoke.py），本次无存量迁移。
