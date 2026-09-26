@@ -48,7 +48,7 @@ resonance/
 │   └── engine.py        #   V3Backtester 事件循环
 ├── dataio/              # ④数据访问（≈ repositories）
 │   ├── ifind.py         #   iFinD REST 客户端（token/分块，原样迁移）
-│   ├── cache.py         #   data/cache 宽表落盘/加载（含 stitched 拼接读侧）
+│   ├── cache.py         #   data/cache 宽表落盘/加载（只存原始宽表；「拼接」不在此层：展示口径归 services/publish，bar 窗拼接归 domain/minute）
 │   └── outputs.py       #   outputs/oos 运行产物读取（nav/trades/信号 JSON）
 └── services/            # ⑤用例编排（≈ services）
     ├── daily.py         #   OOS 每日 runner 用例：update_daily/topup/replay_track
@@ -69,8 +69,10 @@ resonance/
 
 依赖注入用构造函数传实例（测试注入 mock dataio，落实「网络必须 mock」的
 既有硬约束），不引 DI 框架。注：`V3Backtester` 构造器的 `broad_codes`
-默认值（原取 config.BROAD_INDEX_POOL）删除，调用方显式传池——生产调用方
-本就全部显式传参，运行行为不变。
+默认值（原取 config.BROAD_INDEX_POOL）删除，调用方显式传池。**已知例外
+一处**（2026-09-27 复核修正：原「生产调用方全部显式传参」不成立）：
+`backtest_v41.py` 第三节 V3 规格栈对照依赖该默认（13 池），迁移时须补
+`broad_codes=list(specs.BROAD_INDEX_POOL)`（同值显式，行为不变）。
 
 ## 四、迁移映射
 
@@ -87,12 +89,14 @@ resonance/
 | `signal_daily.py` update_daily/topup_minute/replay_track | `services/daily.py` | main 留入口只做闸+组装+打印 |
 | `signal_daily.py` `POOL13`/`TRACKS`/`FROZEN`/`OOS_START` | `specs.py` | |
 | `backtest_v41.py` build_provider/run_stack/stats_row | `services/backtest.py` | |
-| `backtest_v41.py` `DAILY_CTRL`/`ANCHORS` | `specs.py` | |
+| `backtest_v41.py` 冻结常量族（`V41_STACK`/`DAILY_CTRL`/`V41_PHASES`/`V41_END` 与验证锚点数值 `ANCHORS`） | `specs.py` | 两处同名 ANCHORS 含义不同：此处为**复现验证锚点数值**；`publish_site.py` 的 `ANCHORS` 是三锚池（改引用 `specs.V43_ANCHOR_POOL`） |
 | `config.py` URL/token/目录/`CONCEPT_CODE_RANGE`/`COLLECT_START`/`HD_FIELD_MAP` | `core/config.py` | |
 | `config.py` 三池（`V43_ANCHOR_POOL`/`V41_BROAD_POOL`/`BROAD_INDEX_POOL`）、`RETIRED_NO_HF_CODES`+`assert_no_retired` | `specs.py` | |
 | `minute.py` 采集常量（`MINUTE_INTERVAL` 等，`collect_minute5` 在用） | `core/config.py` | |
 | `metrics.py`、`minute.py` 其余、`RotationBacktester`、`SIGNAL_WINDOW` 等 GPT 参数 | **删除** | 实施时以 grep 引用核实；`BENCHMARK_INDEXES`/`BACKTEST_START` 等疑似无引用者同规则处理，发现仍有生产引用则迁 specs 并在 PR 记录 |
 | `v3.py` 资金流研究钩子（`entry_gate`/`exit_grid`/`post_rank` 及 `flow_exit` 分支） | **删除** | 2026-09-26 查实仅 test_v3 的钩子用例在引用，生产零消费者（实验已收口，结论在 moneyflow-gate-plan §八）；对应测试随删。§十规则③的现成执行 |
+| `ops/backtest_v3.py` | **删除** | 2026-09-27 复核查实为坏入口：line 66 传 `minute_prices=`，现引擎签名早已是 `minute_bars_provider`，运行必 TypeError；其职责（V3 规格栈对照）已被 backtest_v41 第三节覆盖 |
+| 文档工件位置引用（CLAUDE.md 关键参数节、README.md:10、docs/README.md:6-7、docs/spec/v43-best-plan.md:5/47、docs/ops/oos-validation-design.md:16）与 CLAUDE.md 测试计数 | **同步改写** | 六处 `config.V43_ANCHOR_POOL`/FROZEN 旧位置引用改指 `resonance/specs.py`；CLAUDE.md「45 个测试」计数随用例删减更新；v43-best-plan 仅改交叉引用路径，非改参 |
 | `publish_site.py` | 见 §六 | |
 | `__init__.py` docstring | 更新 | 现述「相关性分析与轮动回测」已过时 |
 
@@ -130,11 +134,14 @@ Python 分层）、Pages CI/EdgeOne 部署链路、四个 JSON 的格式。
 
 1. **重构前跑基线并存档**（离线，用现有 cache，不碰网络）：
    `backtest_v41` 全部栈的 nav/trades 产物；`signal_daily` 四轨重放信号
-   （replay-only）；`publish_site --dry-run` 的四个 JSON；
+   （**直调 `replay_track(track, pool, end)` 离线采集**——`main()` 必走
+   `update_daily` 走网络，勿经 main；零代码改动）；`publish_site
+   --dry-run` 的四个 JSON；
 2. **重构后同命令重跑**：nav 序列、trades 明细、信号文件数值逐项一致；
    `publish_site --dry-run` 四 JSON **byte 级一致**（它串起 cache 加载→
    回测重放→stitched 口径→全部 build 逻辑，是最强端到端等价测试）；
-3. 现有 45 个离线测试重排后全绿（pytest 保持离线可跑）；
+3. 存量用例随迁移全绿（pytest 保持离线可跑）；死代码/研究钩子用例随删，
+   总数相应下降（原「45 个全绿」措辞与 §八 删例矛盾，2026-09-27 修正）；
 4. 重构独立成 commit 可 bisect；`specs.py` 数值与原 config/FROZEN 字面
    一致——不改任何参数语义。
 
@@ -144,7 +151,8 @@ Python 分层）、Pages CI/EdgeOne 部署链路、四个 JSON 的格式。
   `test_domain_{resonance,signals,minute,engine}.py`、
   `test_dataio_ifind.py`、`test_services_{daily,backtest,publish}.py`；
   死代码用例（test_core 的 metrics/RotationBacktester、test_minute 旧
-  口径）随删；
+  口径）随删；各测试文件的 sys.path 引导（5 处）随 `pip install -e .`
+  一并删除；
 - `docs/README.md` 分层叙述补一张「代码五层 ↔ 文档四分」映射表（一句话
   级），不重写。
 
