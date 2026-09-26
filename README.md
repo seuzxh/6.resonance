@@ -30,8 +30,9 @@ V3 纯日线栈（+74.4%）→ V4.1 13 池 + 分钟重排 → V4.2 topk3 + leade
 git 历史（≤0790071）完整可溯；在位方法论沉淀：
 
 - [实验手册：七条定律与负结论登记表](docs/research/experiment-playbook.md)
-- [锚点终选实验（三锚决策依据）](outputs/exp_anchor/report.md)
-- [2022-24 历史外推验证](outputs/exp_hist_2022/report.md)
+- 锚点终选（三锚决策依据）与 2022-24 历史外推的结论已并入
+  [V4.3 方案](docs/spec/v43-best-plan.md) §一/§六（原报告随实验收口清理，
+  git ≤40a9532^ 可溯）
 
 ## 环境
 

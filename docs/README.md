@@ -23,16 +23,18 @@
 - [experiment-playbook.md](research/experiment-playbook.md) — 方法论手册：
   预注册协议、七条定律、负结论登记表（新实验必读 §五检查清单）。
 - [qlib-validation-plan.md](research/qlib-validation-plan.md) — qlib 独立引擎
-  复算验证（预注册设计，未开跑，待过 §十决策项）。
+  复算验证（parquet 直驱、免 bin；预注册设计，P0 冒烟已过，待过 §八决策项）。
 - [moneyflow-gate-plan.md](research/moneyflow-gate-plan.md) — 资金流闸门探索
   （预注册 → 四轮实验 → 全线收官存档）。
 - [minute-resonance-design.md](research/minute-resonance-design.md) — 分钟层
   设计演化存档（dyn5→v4；现行口径已由 V4.1+ 取代，其成本工程章节仍为
   5min 采集需求矩阵的依据）。
 - [gpt-session-summary.md](research/gpt-session-summary.md) — 项目起源纪要。
-- 实验报告在 [outputs/](../outputs/README.md)：[锚点终选](../outputs/exp_anchor/report.md)
-  （三锚决策依据）、[2022-24 历史外推](../outputs/exp_hist_2022/report.md)、
-  [资金流四轮](../outputs/exp_moneyflow/report.md)等。
+- 收口实验报告（锚点终选 / 2022-24 历史外推 / 资金流四轮）已随实验收口
+  清理删除：结论分别并入 [v43-best-plan](spec/v43-best-plan.md) §一/§六 与
+  [moneyflow-gate-plan](research/moneyflow-gate-plan.md) §八；原始报告
+  git 历史（≤40a9532^）可溯，[outputs/](../outputs/README.md) 保留各实验的
+  数据表（CSV）。
 
 ## data/ 数据层（研究写侧与运行读侧共用）
 

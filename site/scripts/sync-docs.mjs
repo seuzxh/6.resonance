@@ -49,6 +49,15 @@ const CATALOG = [
     docs: [
       { file: 'research/moneyflow-gate-plan.md', title: '资金流闸门探索', badge: '收官',
         desc: 'high_frequency 资金指标 × 共振：预注册 → 四轮实验 → 全线终局' },
+      { file: 'research/qlib-validation-plan.md', title: 'qlib 复算验证方案', badge: '待开跑',
+        desc: '独立引擎三问复算（引擎正确性 / 数据链路 / 分析增量），预注册设计' },
+    ],
+  },
+  {
+    group: '数据层', desc: '研究写侧与运行读侧共用的数据资产',
+    docs: [
+      { file: 'data/data-inventory.md', title: '数据资产清单',
+        desc: '自采行情与外部 qlib 库的存放位置、口径边界与灾备链路' },
     ],
   },
   {
@@ -77,9 +86,11 @@ if (existsSync(diagDst)) await rm(diagDst, { recursive: true, force: true })
 await mkdir(diagDst, { recursive: true })
 
 // 递归扫描子目录（2026-09-26 docs/ 重组为 spec/ops/research/data 四组；
-// Node20 readdir recursive 返回 'spec/xxx.md' 形式的相对路径）
+// Node20 readdir recursive 返回 'spec/xxx.md' 形式的相对路径）。
+// docs/README.md 是仓库侧导航，站点有自己的分组首页 index.md——两者在
+// VitePress 中都映射到 /docs/ 路由，README 必须排除以免路由冲突。
 const srcFiles = (await readdir(docsSrc, { recursive: true }))
-  .filter(f => f.endsWith('.md') && !f.split('/').includes('diagrams'))
+  .filter(f => f.endsWith('.md') && !f.split('/').includes('diagrams') && f !== 'README.md')
 const registered = new Set(CATALOG.flatMap(g => g.docs.map(d => d.file)))
 // 未登记文档兜底组（保证 docs 下任何 md 都有入口）
 const unreg = srcFiles.filter(f => !registered.has(f))

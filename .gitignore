@@ -37,3 +37,6 @@ site/.vitepress/cache/
 site/docs/
 site/public/diagrams/
 site/.vitepress/docs-manifest.json
+
+# codegraph 本地符号索引（会话工具产物）
+.codegraph/

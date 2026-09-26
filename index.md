@@ -26,10 +26,12 @@
 - [分钟共振设计演化（dyn5→v4 存档）](docs/research/minute-resonance-design.md)
 - [GPT 会话迁移纪要（项目起源）](docs/research/gpt-session-summary.md)
 
-### 实验报告（outputs/）
+### 实验报告（已收口清理）
 
-- [锚点实验：13 锚全流程终选 + 9 池拆解归因](outputs/exp_anchor/report.md)
-- [2022-2024 历史扩展验证（时间外推警示级）+ 数据体检](outputs/exp_hist_2022/report.md)
+锚点终选（三锚决策依据）与 2022-24 历史外推的结论已并入
+[V4.3 方案 §一/§六](docs/spec/v43-best-plan.md)；资金流四轮结论见
+[资金流闸门探索 §八](docs/research/moneyflow-gate-plan.md)。
+原始报告已随实验收口清理（git ≤40a9532^ 可溯）。
 
 ## 🗄 数据层（两过程共用）
 

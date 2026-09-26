@@ -22,6 +22,8 @@
 
 - `backtest_v3.py`：V3 栈锚点对照 + 相位表。
 - `backtest_v41.py`：V4.1 分钟重排栈（现行生产栈）复现。
+- `qlib_smoke.py`：qlib 验证 P0 冒烟（parquet 直驱 pyqlib 回测，无 bin、
+  无 qlib.init；方案见 [qlib-validation-plan](../docs/research/qlib-validation-plan.md)）。
 
 收口实验脚本（dyn5 归档、锚点终选系列、2022-24 历史外推、资金流探测、
 opt_v3 优化网格）已分两轮清理：2026-09-23（≤0790071）与 2026-09-26

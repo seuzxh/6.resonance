@@ -32,12 +32,12 @@ export default defineConfig({
       {
         text: '文档',
         items: [
-          { text: 'V4.3 生产方案', link: '/docs/v43-best-plan/' },
-          { text: 'OOS 验证设计', link: '/docs/oos-validation-design/' },
-          { text: '实验手册', link: '/docs/experiment-playbook/' },
-          { text: '资金流闸门探索', link: '/docs/moneyflow-gate-plan/' },
+          { text: 'V4.3 生产方案', link: '/docs/spec/v43-best-plan/' },
+          { text: 'OOS 验证设计', link: '/docs/ops/oos-validation-design/' },
+          { text: '实验手册', link: '/docs/research/experiment-playbook/' },
+          { text: '资金流闸门探索', link: '/docs/research/moneyflow-gate-plan/' },
           { text: '交互图表', link: '/docs/diagrams/' },
-          { text: '起源纪要', link: '/docs/gpt-session-summary/' },
+          { text: '起源纪要', link: '/docs/research/gpt-session-summary/' },
           { text: '全部文档', link: '/docs/' },
         ],
       },
