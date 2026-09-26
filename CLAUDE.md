@@ -8,7 +8,9 @@
 指数—概念上涨共振策略研究与样本外验证。现行生产口径 **V4.3 三锚动选**
 （深证成指/国证2000/科创50，参数冻结见 docs/spec/v43-best-plan）；OOS 四轨纸面验证
 运行中（docs/ops/oos-validation-design.md，评价期禁改参）。数据源同花顺 iFinD
-REST + 本地 qlib 备用链路。
+REST + 本地 qlib 备用链路。领域词汇表见
+[CONTEXT.md](CONTEXT.md)（锚/领先指数、降级/兜底、分钟重排/分钟执行层
+等易混概念的唯一权威区分）。
 
 ## 硬约束
 
