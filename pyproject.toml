@@ -1,0 +1,24 @@
+# 工程配置（2026-09-27 初始化）。依赖唯一源仍是 requirements.txt
+# （[tool.setuptools.dynamic] 直读，双处不漂移）；ops/ 脚本的 sys.path
+# 引导保留，待分层重构时以 `pip install -e .` 统一替换
+# （docs/superpowers/specs/2026-09-26-layering-refactor-design.md）。
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resonance"
+version = "0.1.0"
+description = "指数—概念上涨共振策略研究与样本外验证（V4.3 三锚动选）"
+requires-python = ">=3.12"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+include = ["resonance*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
