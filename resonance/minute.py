@@ -1,6 +1,6 @@
 """分钟共振精选：日线 Top10 概念池内用分钟K线收盘相关度二次排序。
 
-设计见 docs/minute-resonance-design.md §二（v3）：
+设计见 docs/research/minute-resonance-design.md §二（v3）：
 - 第一层（日线，短窗）：领先指数 = 13 宽基近 w 日累计收益最强（w∈{2..5} 扫描，
   v1/v2 为 20 日）；全概念池按与领先指数近 w 日 Pearson 相关降序取 Top10；
 - 第二层（分钟，v3=近 3 日 5min）：Top10 内按与领先指数的分钟共振分降序——

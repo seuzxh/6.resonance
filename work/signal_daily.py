@@ -1,4 +1,4 @@
-"""样本外验证每日 runner（docs/oos-validation-design.md，2026-09-22 启动）。
+"""样本外验证每日 runner（docs/ops/oos-validation-design.md，2026-09-22 启动）。
 
 用法（每日收盘后）：
     conda run -n resonance python work/signal_daily.py            # 双轨（9池+13池）
@@ -37,7 +37,7 @@ POOL13 = ["883957.TI", "700050.TI", "000680.SH", "399006.SZ", "000688.SH", "0000
           "899050.BJ", "932000.CSI", "000300.SH", "000905.SH", "000852.SH", "399303.SZ",
           "000015.SH", "000001.SH", "399001.SZ"]
 # C1 = 固定深证成指锚（单锚冠军对照）；D3 = V4.3 生产口径（三锚动选，
-# docs/v43-best-plan.md，2026-09-23 用户决策）
+# docs/spec/v43-best-plan.md，2026-09-23 用户决策）
 TRACKS = {"D3": list(config.V43_ANCHOR_POOL),
           "A9": list(config.V41_BROAD_POOL), "B13": POOL13, "C1": ["399001.SZ"],
           # 分净值对照轨（站点净值页用，参数同冻结值，纯加法不影响预注册四轨）

@@ -29,32 +29,32 @@ const CATALOG = [
   {
     group: '生产与验证', desc: '现役口径与样本外跟踪',
     docs: [
-      { file: 'v43-best-plan.md', title: 'V4.3 生产方案（三锚动选）', badge: '现行',
+      { file: 'spec/v43-best-plan.md', title: 'V4.3 生产方案（三锚动选）', badge: '现行',
         desc: '冻结参数、组件来源表、领先分布与 2022-24 时间外推警示' },
-      { file: 'oos-validation-design.md', title: 'OOS 验证设计', badge: '预注册',
+      { file: 'ops/oos-validation-design.md', title: 'OOS 验证设计', badge: '预注册',
         desc: '四轨纸面验证（D3 主轨 / A9 / B13 / C1 对照）、判据与运行纪律' },
     ],
   },
   {
     group: '方法论', desc: '怎么做实验，以及为什么',
     docs: [
-      { file: 'experiment-playbook.md', title: '实验手册', badge: '核心',
+      { file: 'research/experiment-playbook.md', title: '实验手册', badge: '核心',
         desc: '方法论协议、七条核心定律（L1-L7）、负结论登记表与新实验检查清单' },
-      { file: 'gpt-session-summary.md', title: '起源纪要（GPT 会话）',
+      { file: 'research/gpt-session-summary.md', title: '起源纪要（GPT 会话）',
         desc: '策略规则的逐条确认记录与项目迁移上下文' },
     ],
   },
   {
     group: '探索记录', desc: '完整实验闭环存档',
     docs: [
-      { file: 'moneyflow-gate-plan.md', title: '资金流闸门探索', badge: '收官',
+      { file: 'research/moneyflow-gate-plan.md', title: '资金流闸门探索', badge: '收官',
         desc: 'high_frequency 资金指标 × 共振：预注册 → 四轮实验 → 全线终局' },
     ],
   },
   {
     group: '历史存档', desc: '已被后续口径取代的设计文档',
     docs: [
-      { file: 'minute-resonance-design.md', title: '分钟共振设计（dyn5 时代）', badge: '历史',
+      { file: 'research/minute-resonance-design.md', title: '分钟共振设计（dyn5 时代）', badge: '历史',
         desc: 'Top10 池内分钟二次排序的三版演化，V4.1+ 口径取代' },
     ],
   },
@@ -76,7 +76,10 @@ await mkdir(docsDst, { recursive: true })
 if (existsSync(diagDst)) await rm(diagDst, { recursive: true, force: true })
 await mkdir(diagDst, { recursive: true })
 
-const srcFiles = (await readdir(docsSrc)).filter(f => f.endsWith('.md'))
+// 递归扫描子目录（2026-09-26 docs/ 重组为 spec/ops/research/data 四组；
+// Node20 readdir recursive 返回 'spec/xxx.md' 形式的相对路径）
+const srcFiles = (await readdir(docsSrc, { recursive: true }))
+  .filter(f => f.endsWith('.md') && !f.split('/').includes('diagrams'))
 const registered = new Set(CATALOG.flatMap(g => g.docs.map(d => d.file)))
 // 未登记文档兜底组（保证 docs 下任何 md 都有入口）
 const unreg = srcFiles.filter(f => !registered.has(f))
@@ -92,15 +95,19 @@ const titleByFile = {}
 for (const g of CATALOG) for (const d of g.docs) titleByFile[d.file] = d.title
 for (const f of srcFiles) {
   let text = await readFile(join(docsSrc, f), 'utf8')
-  // 交互图链接 → public 直通路径（markdown 链接由 VitePress 处理 base）
+  // 交互图链接 → public 直通路径（markdown 链接由 VitePress 处理 base）；
+  // 子目录文档（spec/ops/research/data）里的 ../diagrams/ 链接也归一
   text = text.replaceAll('](diagrams/', '](/diagrams/')
-  // 指向未发布路径的链接 → 纯文字注记
-  text = text.replace(/\[([^\]]+)\]\((\.\.\/(?:outputs|work)\/[^)]+)\)/g,
-    '$1（仓库内路径：$2）')
+  text = text.replace(/\]\((?:\.\.\/)+diagrams\//g, '](/diagrams/')
+  // 指向未发布路径的链接（子目录文档可出现多层 ../）→ 纯文字注记
+  text = text.replace(/\[([^\]]+)\]\((?:\.\.\/)+(outputs|work)\/[^)]+\)/g,
+    '$1（仓库内路径：…/$2/…）')
   const title = titleByFile[f] || firstHeading(text)
   const fm = text.startsWith('---') ? '' :
     `---\ntitle: ${title}\noutline: [2, 3]\n---\n\n`
-  await writeFile(join(docsDst, f), fm + text, 'utf8')
+  const dst = join(docsDst, f)
+  await mkdir(dirname(dst), { recursive: true })
+  await writeFile(dst, fm + text, 'utf8')
 }
 // 补齐目录标题/摘要（兜底组从首标题回填）
 for (const g of CATALOG) for (const d of g.docs) {

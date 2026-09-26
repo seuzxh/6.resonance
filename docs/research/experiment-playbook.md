@@ -94,7 +94,7 @@
 
 ## 四、数据边界备忘
 
-> 配图：[数据流图](diagrams/data-pipeline-dataflow.html)——双链路采集、
+> 配图：[数据流图](../diagrams/data-pipeline-dataflow.html)——双链路采集、
 > 降级与修复路径的可视化。
 
 - **HF 5min**：仅最近 ~1 年；微盘股 700050.TI/中证2000 932000.CSI 无覆盖

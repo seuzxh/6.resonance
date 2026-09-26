@@ -395,7 +395,7 @@ class V3Backtester:
         self.mbp = minute_bars_provider
         if self.p.daily_top > 0:
             assert self.mbp is not None, "daily_top>0（V4.1 分钟重排）需要 minute_bars_provider"
-        # 研究钩子（moneyflow-gate，docs/moneyflow-gate-plan.md）：entry_gate 为
+        # 研究钩子（moneyflow-gate，docs/research/moneyflow-gate-plan.md）：entry_gate 为
         # 日期→bool 序列；False 的空仓日不产生入场信号（soft gate：不影响持仓
         # 检查/换仓/止损）。日期不在索引 → 直通并计 gate_missing_days。
         # exit_grid 为 日期×概念 bool 宽表（R2 hard gate）：持仓检查日 True →

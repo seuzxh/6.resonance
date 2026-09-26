@@ -3,23 +3,37 @@
 本站为 **resonance** 项目的文档 Pages。仓库与代码（含 README）见
 [GitHub · seuzxh/6.resonance](https://github.com/seuzxh/6.resonance)。
 
-**现行方案：[V4.3 三锚动选（暂定）](docs/v43-best-plan.md)**
+文档按项目生命周期归类——**寻优研究（历史过程）只写结论与规格，每日运行
+（推理过程）只读冻结规格**，两个过程通过不可变的冻结规格解耦，
+总索引见 [docs/README.md](docs/README.md)。
+
+**现行方案：[V4.3 三锚动选（暂定）](docs/spec/v43-best-plan.md)**
 —— 深证成指/国证2000/科创50 三锚动选 + 日线 Top5 × 24 根 5 分钟纯分钟重排
 + Top3 缓冲；OOS 四轨样本外验证运行中（每日同步暂停，用户通知后开启）。
 
-## 📌 现行方案与冻结记录
+## 📌 冻结规格（产物层——两过程的接口）
 
-- [V4.3 三锚动选（现行，2026-09-23 定档）](docs/v43-best-plan.md)
+- [V4.3 三锚动选（现行，2026-09-23 定档）](docs/spec/v43-best-plan.md)
 
-## 🧪 方法论与协议
+## 🔁 每日运行（推理过程）
 
-- [实验手册：七条定律与负结论登记表（新实验必读）](docs/experiment-playbook.md)
-- [OOS 样本外验证设计（四轨，预注册）](docs/oos-validation-design.md)
+- [OOS 样本外验证设计（四轨，预注册）](docs/ops/oos-validation-design.md)
 
-## 📊 实验报告
+## 🧪 寻优研究（历史过程）
+
+- [实验手册：七条定律与负结论登记表（新实验必读）](docs/research/experiment-playbook.md)
+- [资金流闸门探索（已收官存档）](docs/research/moneyflow-gate-plan.md)
+- [分钟共振设计演化（dyn5→v4 存档）](docs/research/minute-resonance-design.md)
+- [GPT 会话迁移纪要（项目起源）](docs/research/gpt-session-summary.md)
+
+### 实验报告（outputs/）
 
 - [锚点实验：13 锚全流程终选 + 9 池拆解归因](outputs/exp_anchor/report.md)
 - [2022-2024 历史扩展验证（时间外推警示级）+ 数据体检](outputs/exp_hist_2022/report.md)
+
+## 🗄 数据层（两过程共用）
+
+- [数据资产清单与口径](docs/data/data-inventory.md)
 
 ## 📐 图表（交互式）
 
@@ -28,10 +42,6 @@
 - [信号生命周期时序（T → T+1 → T+2）](docs/diagrams/signal-lifecycle-sequence.html)
 - [数据流：双链路采集与降级修复](docs/diagrams/data-pipeline-dataflow.html)
 - [持仓状态机（建仓/持有/检查/风控出口）](docs/diagrams/holding-lifecycle.html)
-
-## 🗄 起源
-
-- [GPT 会话迁移纪要（项目起源）](docs/gpt-session-summary.md)
 
 ---
 

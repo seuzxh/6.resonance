@@ -6,7 +6,7 @@
     conda run -n resonance python work/collect_minute5.py --backfill --from 2026-09-01
     conda run -n resonance python work/collect_minute5.py --backfill --codes 885311.TI,883957.TI
 
-成本工程（docs/minute-resonance-design.md v3）：5min=48bar/日。需求 = 日线池
+成本工程（docs/research/minute-resonance-design.md v3）：5min=48bar/日。需求 = 日线池
 （v3：短窗 w∈{2..5} 的 Top10，逐日并集）成员的信号日 + 3 日回看，仅限分钟
 留存期（2025-09-22 起）。断点以已有 parquet 的 (code, date) 覆盖为准。
 

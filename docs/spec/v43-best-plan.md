@@ -11,7 +11,7 @@
 ## 一、决策与依据（2026-09-23）
 
 用户决策："使用 深证成指、国证2000 和 科创50 作为锚定指数"。依据链：
-1. 13 锚全流程筛选（[exp_anchor/report.md](../outputs/exp_anchor/report.md)
+1. 13 锚全流程筛选（[exp_anchor/report.md](../../outputs/exp_anchor/report.md)
    §七/§八）：三强 = 深证成指 +135.5% > 国证2000 +118.1% > 科创50 +114.1%，
    六次判定（日线栈/全流程 × 双窗口）排序稳定（成长梯队，L2/L5 全过）；
 2. 9 池拆解（§六）：动量选锚的问题在"踩极端动量坏锚"，而非动量本身——
@@ -31,9 +31,9 @@
 对照：V4.2 生产口径（9 池动选）同期 +76.8%/−33.8%。
 
 > 配图（交互式 HTML，docs/diagrams/）：
-> [系统架构](diagrams/architecture.html) ·
-> [信号生命周期时序](diagrams/signal-lifecycle-sequence.html) ·
-> [持仓状态机](diagrams/holding-lifecycle.html)
+> [系统架构](../diagrams/architecture.html) ·
+> [信号生命周期时序](../diagrams/signal-lifecycle-sequence.html) ·
+> [持仓状态机](../diagrams/holding-lifecycle.html)
 
 ## 三、冻结参数（V4.2 全量继承 + 池替换）
 
@@ -51,15 +51,15 @@ broad_codes = list(config.V43_ANCHOR_POOL)   # 唯一变更：锚定指数池
 
 | 组件 | 取值 | 采纳依据（版本 / 证据） |
 |---|---|---|
-| 日线信号层 | 20 日上涨共振 EW、逐日调仓检查、Top5 预选、T+1、几何复利 | GPT 会话基线口径（[起源纪要](gpt-session-summary.md)） |
+| 日线信号层 | 20 日上涨共振 EW、逐日调仓检查、Top5 预选、T+1、几何复利 | GPT 会话基线口径（[起源纪要](../research/gpt-session-summary.md)） |
 | 5min 纯分钟重排 | 收盘前 24 根 bar；覆盖缺失按 L7 降级并计数 | V4.1：分钟层增量 +9.8~+23.3pp 同向（覆盖受限与全覆盖两口径） |
 | Top3 缓冲 | topk=3（Top5 池内） | V4.2-A：+7.3pp，5/5 相位 |
 | 领先指数动态半衰期 | hl_source="leader"，档位 (5,3,2) | V4.2-B：+15.4pp 且回撤改善 6.4pp（L6 对症基准） |
 | 收盘止损 | stop_loss=0.05，stop_mode="close" | V3-R1 网格维持规格值；盘中时点优化证伪（NEUTRAL） |
 | 防御层 | 关闭（defense_dd=0.0） | G 轮 + 熊市补测：与 leader 半衰期功能挤占（L1 第五证），救不动三锚也不帮单锚 |
-| 三锚动选池 | 深证成指/国证2000/科创50 | [exp_anchor](../outputs/exp_anchor/report.md) 13 锚终选 + 9 池拆解（本版核心变更） |
+| 三锚动选池 | 深证成指/国证2000/科创50 | [exp_anchor](../../outputs/exp_anchor/report.md) 13 锚终选 + 9 池拆解（本版核心变更） |
 
-## 四、OOS 跟踪（docs/oos-validation-design.md）
+## 四、OOS 跟踪（docs/ops/oos-validation-design.md）
 
 OOS 四轨：**D3 = 本生产口径（主轨）**，A9（V4.2 九池，前生产对照）、
 B13（13 池对照）、C1（单锚深证成指对照）并行；≥60 信号日按预注册判据

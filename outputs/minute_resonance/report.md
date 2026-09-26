@@ -2,7 +2,7 @@
 
 > 2026-09-19 v1（60min 滚动相关）→ v2（5min 滚动相关）→ v3（5min 近 3 日 + 短窗）
 > → v4（极值时刻弹性·双窗）→ **v4b（极值时刻弹性·只涨窗，用户追加）**
-> 方案：[docs/minute-resonance-design.md](../../docs/minute-resonance-design.md)
+> 方案：[docs/research/minute-resonance-design.md](../../docs/research/minute-resonance-design.md)
 > ｜ 复现：`conda run -n resonance python work/backtest_minute.py`
 > ｜ **预注册判定：v4 双窗 8/8 HARMFUL；v4b 只涨窗 7/8 HARMFUL + 1 NEUTRAL（不采纳）**
 

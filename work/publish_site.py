@@ -331,7 +331,12 @@ def build_signals(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> di
 def build_archive() -> dict:
     root = Path(__file__).resolve().parents[1]
     items = []
-    for f in sorted((root / "docs").glob("*.md")):
+    # docs/ 已按生命周期归类为 spec/ ops/ research/ data/ 子目录（2026-09-26）；
+    # README.md 是导航页，不入档案流
+    for f in sorted((root / "docs").rglob("*.md")):
+        rel = f.relative_to(root).as_posix()
+        if f.name == "README.md":
+            continue
         date = subprocess.run(["git", "log", "-1", "--format=%as", "--", str(f)],
                               capture_output=True, text=True, cwd=root).stdout.strip() or "—"
         title = ""
@@ -342,7 +347,7 @@ def build_archive() -> dict:
         if not title:
             continue
         items.append({"date": date, "title": title,
-                      "url": f"https://github.com/seuzxh/6.resonance/blob/master/docs/{f.name}"})
+                      "url": f"https://github.com/seuzxh/6.resonance/blob/master/{rel}"})
     items.sort(key=lambda x: x["date"], reverse=True)
     return {"version": 1, "items": items[:12]}
 

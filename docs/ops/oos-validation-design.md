@@ -13,7 +13,7 @@
 | A（生产轨） | 9 池动态锚（config.V41_BROAD_POOL） | V4.2 冻结值 |
 | B（对照轨） | 13 池动态锚（work/collect_v41_topup.py POOL13） | 同 V4.2 冻结值 |
 | C（锚轨，2026-09-23 增） | 固定深证成指锚（399001.SZ 单元素池） | 同 V4.2 冻结值 |
-| **D（生产主轨，2026-09-23 增）** | **V4.3 三锚动选**（config.V43_ANCHOR_POOL：深证成指/国证2000/科创50） | 同 V4.2 冻结值（docs/v43-best-plan.md） |
+| **D（生产主轨，2026-09-23 增）** | **V4.3 三锚动选**（config.V43_ANCHOR_POOL：深证成指/国证2000/科创50） | 同 V4.2 冻结值（docs/spec/v43-best-plan.md） |
 
 四轨目的：把挂起的生产决策交样本外裁决（D3 为 2026-09-23 用户定稿的
 生产口径主轨；A9/B13/C1 保留为对照）——池 9 vs 13（样本内 13 池
@@ -43,7 +43,7 @@ V3Params(topk=3, daily_top=5, hl_source="leader",
 2. **每日**：收盘后运行 `work/signal_daily.py`（增量采集→自愈分钟补齐→
    无状态全窗重放→信号落盘 outputs/oos/）。信号 T 收盘生成、T+1 收盘
    执行（纸面跟踪执行价，无实盘）。
-   配图：[OOS 每日运行流程图](diagrams/oos-daily-workflow.html)（三道数据
+   配图：[OOS 每日运行流程图](../diagrams/oos-daily-workflow.html)（三道数据
    防线与停机/降级出口）。
    **状态（2026-09-23）：每日同步暂停中，用户通知后开启**——runner 无状态
    重放、幂等，恢复时直接运行即自动补采增量并重放全 OOS 窗，无数据损失。

@@ -1,13 +1,13 @@
 # CLAUDE.md
 
 本文件只补充 ZCode 的项目约束；项目全貌见
-[README.md](README.md)，现行方案见 [docs/v43-best-plan.md](docs/v43-best-plan.md)。
+[README.md](README.md)，现行方案见 [docs/spec/v43-best-plan.md](docs/spec/v43-best-plan.md)。
 
 ## 项目定位
 
 指数—概念上涨共振策略研究与样本外验证。现行生产口径 **V4.3 三锚动选**
-（深证成指/国证2000/科创50，参数冻结见 v43-best-plan）；OOS 四轨纸面验证
-运行中（docs/oos-validation-design.md，评价期禁改参）。数据源同花顺 iFinD
+（深证成指/国证2000/科创50，参数冻结见 docs/spec/v43-best-plan）；OOS 四轨纸面验证
+运行中（docs/ops/oos-validation-design.md，评价期禁改参）。数据源同花顺 iFinD
 REST + 本地 qlib 备用链路。
 
 ## 硬约束
@@ -20,7 +20,7 @@ REST + 本地 qlib 备用链路。
 5. 策略结论必须标注：指数收益研究口径（统一成本压力假设）、概念目录
    幸存者偏差、样本内/上界措辞（experiment-playbook L3）。
 6. 保留无关的未提交改动；清理运行资产前先取得用户确认。
-7. 新实验开跑前必须过 docs/experiment-playbook.md §五检查清单。
+7. 新实验开跑前必须过 docs/research/experiment-playbook.md §五检查清单。
 8. **700050.TI（微盘股）/ 932000.CSI（中证2000）已退役**：HF 端点永久无
    5min 数据（09-19 首测、09-25 同请求对照复核 0 bar），2026-09-25 用户
    指令禁止用于任何新实验/池/锚候选，入口自检用 `config.assert_no_retired`。
@@ -30,7 +30,7 @@ REST + 本地 qlib 备用链路。
 ## 常用验证与入口
 
 ```bash
-conda run -n resonance python -m pytest -q            # 离线测试（63 个）
+conda run -n resonance python -m pytest -q            # 离线测试（45 个）
 conda run -n resonance python work/probe.py           # iFinD 网络冒烟
 conda run -n resonance python work/signal_daily.py    # OOS 每日 runner（暂停中，用户通知后开启）
 conda run -n resonance python work/backtest_v41.py    # 生产栈回测复现
@@ -39,5 +39,5 @@ conda run -n resonance python work/backtest_v41.py    # 生产栈回测复现
 ## 关键参数位置
 
 `resonance/config.py`：V43_ANCHOR_POOL（三锚）、V41_BROAD_POOL（A9 对照轨）、
-历史池与采集参数。冻结参数清单：docs/v43-best-plan.md §三。
-数据资产明细与口径：docs/data-inventory.md（2026-09-25 清点）。
+历史池与采集参数。冻结参数清单：docs/spec/v43-best-plan.md §三。
+数据资产明细与口径：docs/data/data-inventory.md（2026-09-25 清点）。
