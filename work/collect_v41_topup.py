@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import pandas as pd  # noqa: E402
 
 from resonance import config  # noqa: E402
-from resonance.ifind import fetch_minute_close  # noqa: E402
+from resonance.ifind import fetch_minute_bars  # noqa: E402
 from resonance.v3 import MinuteBarProvider, V3Params, V3Signals  # noqa: E402
 from work.backtest_v3 import load_wide  # noqa: E402
 
@@ -174,7 +174,7 @@ def main() -> int:
     for k, (c, days) in enumerate(sorted(todo.items())):
         for s, e in day_runs(days):
             try:
-                df = fetch_minute_close([c], s, e, interval="5",
+                df = fetch_minute_bars([c], s, e, interval="5",
                                         day_start="12:00:00" if not span else "09:30:00")
             except Exception as ex:  # noqa: BLE001
                 print(f"  {c} {s}~{e} 失败：{ex}")
@@ -195,7 +195,8 @@ def main() -> int:
     if new_frames:
         new = pd.concat(new_frames, ignore_index=True)
         merged = pd.concat([base, new], ignore_index=True)
-        merged = merged.drop_duplicates(subset=["symbol", "datetime"]).sort_values(
+        merged = merged.drop_duplicates(subset=["symbol", "datetime"],
+                                        keep="last").sort_values(
             ["symbol", "datetime"]).reset_index(drop=True)
         merged.to_parquet(f, index=False)
         print(f"[写回] +{len(new)} bar（去重后总 {len(merged)} 行）")

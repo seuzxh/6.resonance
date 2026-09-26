@@ -52,13 +52,13 @@ def test_topup_requires_bars_on_the_exact_day(tmp_path, monkeypatch):
 
     calls = []
 
-    def fake_fetch(codes, s, e, interval="5", day_start="09:30:00"):
+    def fake_fetch(codes, s, e, indicators=None, interval="5", day_start="09:30:00"):
         calls.append((codes[0], s))
         return pd.DataFrame({"symbol": [codes[0]] * 2,
                              "datetime": pd.to_datetime([f"{s} 14:50", f"{s} 14:55"]),
                              "close": [1.0, 1.1]})
 
-    monkeypatch.setattr(sd, "fetch_minute_close", fake_fetch)
+    monkeypatch.setattr(sd, "fetch_minute_bars", fake_fetch)
 
     idx = pd.bdate_range("2026-09-01", "2026-09-23")
     close_all = pd.DataFrame({"LDR": pd.Series(1.01, index=idx).cumprod(),

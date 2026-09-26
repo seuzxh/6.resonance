@@ -49,6 +49,8 @@ def load_refresh_token() -> str:
             continue
         for line in path.read_text().splitlines():
             stripped = line.strip()
+            if stripped.startswith("export "):
+                stripped = stripped[len("export "):].strip()
             if stripped.startswith("IFIND_REFRESH_TOKEN") and "=" in stripped:
                 _, rhs = stripped.split("=", 1)
                 token = rhs.strip().strip('"').strip("'")
@@ -114,7 +116,14 @@ def get_access_token() -> str:
 
 # --- HTTP core ---
 def _post(url: str, payload: dict, timeout: int = 120) -> dict:
-    """POST + JSON 解码 + token 失效刷新重试一次；永久错误 fail-fast。"""
+    """POST + JSON 解码 + 一次刷新重试；配额类错误 fail-fast 不浪费刷新。
+
+    errorcode≠0 的处理次序（2026-09-26 回补事故教训：任何非零码曾被一律
+    当 token 失效去刷新，refresh 不可用时把真实错误码掩盖成 token 加载错）：
+    ① 配额码直接抛（刷新救不了）；② 其余先刷新 token 重试一次（刷新不可用
+    则沿用旧 token 原样重试——瞬时错误码常自愈）；③ 仍失败则抛出**原始**
+    errorcode/errmsg。
+    """
     access = get_access_token()
     r = requests.post(
         url,
@@ -128,8 +137,13 @@ def _post(url: str, payload: dict, timeout: int = 120) -> dict:
         raise IfindError(f"iFinD HTTP {r.status_code} (transient) @ {url}: {r.text[:200]!r}")
     data = r.json()
     if not _errcode_ok(data):
-        # token 失效签名：刷新一次重试一次
-        access = _refresh_access_token()
+        code0 = str(data.get("errorcode"))
+        if code0 in _QUOTA_ERRORCODES:
+            raise IfindError(f"配额耗尽 errorcode={code0}: {data.get('errmsg')}")
+        try:
+            access = _refresh_access_token()
+        except Exception:  # noqa: BLE001 — 刷新不可用：带原码重试，不掩盖真实错误
+            access = get_access_token()
         data = requests.post(
             url,
             json=payload,
@@ -210,14 +224,98 @@ def parse_history_data(resp: dict, indicators: list[str]) -> pd.DataFrame:
 NAME_PROBE_SENTINEL = "885999.TI"  # 已知有效（汽车热管理），用作全无效批次的哨兵
 
 
-# --- high_frequency：60min 指数K线（2026-09-19 实测口径） ---
-# ① 端点 ft.10jqka.com.cn（与 history_quotation 共享月度配额池）；② 覆盖：宽基 11/13
-# （缺 700050/932000）、概念 389/529——无分钟数据的代码在响应中返回 0 bar；
-# ③ Fill="Forward" 对无数据代码返回字面字符串 "Forward"（伪数据，禁用）；
-# ④ 历史仅滚动 ~1 年（更早 errorcode=-4309）；⑤ Interval=60 → 每日 4 bar
-# （10:30/11:30/14:00/15:00，bar 结束时刻）；⑥ 多代码可批、跨日区间可批，
-# 响应 MaxPoints≈50000（20 codes × 一年 33k 点安全）。
+# --- high_frequency：分钟K线全指标（2026-09-19 实测口径；09-26 多指标扩展） ---
+# ① 端点 ft.10jqka.com.cn（与 history_quotation 共享月度配额池）；② 覆盖：宽基
+# 11/13（缺 700050/932000，均已退役 RETIRED_NO_HF_CODES）、概念 389/529——无分钟
+# 数据的代码在响应中返回 0 bar；③ Fill="Forward" 对无数据代码返回字面字符串
+# "Forward"（伪数据，禁用）；④ 历史仅滚动 ~1 年（更早 errorcode=-4309）→ 全
+# 指标回补要趁窗口；⑤ Interval=5 → 48 bar/日、Interval=60 → 4 bar/日（bar
+# 结束时刻）；⑥ 响应 MaxPoints≈50000——dataVol=指标数×bar 数，多指标下请求
+# 由 _minute_request_plan 按点数预算自动切分。
 MINUTE_CODES_PER_REQUEST = 20
+# 高频全指标（2026-09-26 用户指令：指标直接取接口，不做本地推导）。返回列名
+# snake_case 化（avgPrice→avg_price、changeRatio→change_ratio），值为接口原样、
+# 量纲未缩放。dataVol=指标数×bar 数，全指标成本≈close 单指标口径的 9 倍。
+MINUTE_INDICATORS = ("open", "high", "low", "close", "avgPrice",
+                     "volume", "amount", "change", "changeRatio")
+_INDICATOR_COLS = {"avgPrice": "avg_price", "changeRatio": "change_ratio"}
+MINUTE_INDICATOR_COLS = tuple(
+    _INDICATOR_COLS.get(k, k) for k in MINUTE_INDICATORS
+)  # ("open",...,"avg_price",...,"change_ratio")
+_BARS_PER_DAY = {"1": 240, "5": 48, "60": 4}
+_MAX_POINTS_PER_REQUEST = 45000  # 响应 MaxPoints≈50k，留 10% 余量
+
+
+def _minute_request_plan(codes: list[str], start_date: str, end_date: str,
+                         n_ind: int, interval: str):
+    """按点数预算切分（codes×预估bar×指标 ≤ 45k）→ yield (chunk, s, e)。"""
+    ppd = _BARS_PER_DAY.get(interval, 48) * n_ind
+    s0 = dt.date.fromisoformat(start_date)
+    e0 = dt.date.fromisoformat(end_date)
+    for i in range(0, len(codes), MINUTE_CODES_PER_REQUEST):
+        chunk = codes[i : i + MINUTE_CODES_PER_REQUEST]
+        max_days = max(1, _MAX_POINTS_PER_REQUEST // (len(chunk) * ppd))
+        cur = s0
+        while cur <= e0:
+            nxt = min(cur + dt.timedelta(days=max_days - 1), e0)
+            yield chunk, cur.isoformat(), nxt.isoformat()
+            cur = nxt + dt.timedelta(days=1)
+
+
+def fetch_minute_bars(
+    codes: list[str],
+    start_date: str,
+    end_date: str,
+    indicators=MINUTE_INDICATORS,
+    interval: str = "5",
+    day_start: str = "09:30:00",
+) -> pd.DataFrame:
+    """high_frequency 分钟K线全指标 → 长表 DF[symbol, datetime, <指标列...>]。
+
+    请求自动按 MaxPoints 预算切分（长区间/多指标下拆多次请求），对调用方
+    透明。空值（None/""）转 NaN，全空 bar 跳行；无分钟数据的代码静默缺行
+    （调用方按 coverage 降级）。datetime 为 bar 结束时刻；
+    day_start="12:00:00" 为下午盘省配额口径（13:05~15:00 共 24 根 5min bar）。
+    """
+    ind = list(indicators)
+    cols = ["symbol", "datetime"] + [_INDICATOR_COLS.get(k, k) for k in ind]
+    rows: list[tuple] = []
+    multi = len(codes) > MINUTE_CODES_PER_REQUEST
+    for chunk, s, e in _minute_request_plan(codes, start_date, end_date,
+                                            len(ind), interval):
+        payload = {
+            "codes": ",".join(chunk),
+            "indicators": ",".join(ind),
+            "starttime": f"{s} {day_start}",
+            "endtime": f"{e} 15:01:00",
+            "functionpara": {"Interval": interval, "CPS": "-no", "Fill": "Original"},
+        }
+        resp = _post(config.IFIND_HF_URL, payload, timeout=300)
+        for t in resp.get("tables") or []:
+            code = t.get("thscode")
+            times = t.get("time") or []
+            tbl = t.get("table") or {}
+            arrs = [tbl.get(k) or [] for k in ind]
+            for j, ts in enumerate(times):
+                vals, any_v = [], False
+                for a in arrs:
+                    v = a[j] if j < len(a) else None
+                    if v is None or str(v) == "":
+                        vals.append(float("nan"))
+                    else:
+                        vals.append(float(v))
+                        any_v = True
+                if any_v:
+                    rows.append((code, ts, *vals))
+        if multi:
+            time.sleep(0.4)
+    if not rows:
+        df = pd.DataFrame(columns=cols)
+        df["datetime"] = pd.to_datetime(df["datetime"])  # 空 .dt 访问安全
+        return df
+    df = pd.DataFrame(rows, columns=cols)
+    df["datetime"] = pd.to_datetime(df["datetime"])
+    return df.sort_values(["symbol", "datetime"]).reset_index(drop=True)
 
 
 def fetch_minute_close(
@@ -227,42 +325,9 @@ def fetch_minute_close(
     interval: str = "60",
     day_start: str = "09:30:00",
 ) -> pd.DataFrame:
-    """high_frequency 分钟收盘价 → 长表 DF[symbol, datetime, close]。
-
-    只取 close（配额省 4/5）；datetime 为 bar 结束时刻 "YYYY-MM-DD HH:MM"。
-    day_start="12:00:00" 为下午盘省配额口径（13:05~15:00 共 24 根 5min bar，
-    V4.1 分钟重排恰好只需当日最后 24 根）。无分钟数据的代码静默缺行
-    （调用方按 coverage 降级）。
-    """
-    frames: list[pd.DataFrame] = []
-    for i in range(0, len(codes), MINUTE_CODES_PER_REQUEST):
-        chunk = codes[i : i + MINUTE_CODES_PER_REQUEST]
-        payload = {
-            "codes": ",".join(chunk),
-            "indicators": "close",
-            "starttime": f"{start_date} {day_start}",
-            "endtime": f"{end_date} 15:01:00",
-            "functionpara": {"Interval": interval, "CPS": "-no", "Fill": "Original"},
-        }
-        resp = _post(config.IFIND_HF_URL, payload, timeout=300)
-        tables = resp.get("tables") or []
-        rows = []
-        for t in tables:
-            code = t.get("thscode")
-            times = t.get("time") or []
-            closes = (t.get("table") or {}).get("close") or []
-            for ts, c in zip(times, closes):
-                if c is not None and str(c) != "":
-                    rows.append((code, ts, float(c)))
-        if rows:
-            frames.append(pd.DataFrame(rows, columns=["symbol", "datetime", "close"]))
-        if len(codes) > MINUTE_CODES_PER_REQUEST:
-            time.sleep(0.4)
-    if not frames:
-        return pd.DataFrame(columns=["symbol", "datetime", "close"])
-    df = pd.concat(frames, ignore_index=True)
-    df["datetime"] = pd.to_datetime(df["datetime"])
-    return df.sort_values(["symbol", "datetime"]).reset_index(drop=True)
+    """close 单指标省配额口径（旧调用方兼容）；新采集一律用 fetch_minute_bars。"""
+    return fetch_minute_bars(codes, start_date, end_date, indicators=["close"],
+                             interval=interval, day_start=day_start)
 
 
 def fetch_index_names(codes: list[str], chunk_size: int = 200) -> dict[str, str]:

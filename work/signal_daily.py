@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import pandas as pd  # noqa: E402
 
 from resonance import config  # noqa: E402
-from resonance.ifind import fetch_history_data, fetch_minute_close  # noqa: E402
+from resonance.ifind import fetch_history_data, fetch_minute_bars  # noqa: E402
 from resonance.v3 import MinuteBarProvider, V3Params, V3Backtester, V3Signals  # noqa: E402
 
 OOS_START = "2026-09-22"
@@ -133,7 +133,7 @@ def topup_minute_for_window(close_all, concepts, pool, end_date) -> int:
     for c, days in sorted(need.items()):
         for day in sorted(days):
             try:
-                df = fetch_minute_close([c], day, day, interval="5", day_start="12:00:00")
+                df = fetch_minute_bars([c], day, day, interval="5", day_start="12:00:00")
             except Exception as ex:  # noqa: BLE001
                 print(f"  {c} {day} 失败：{str(ex)[:100]}")
                 continue
@@ -145,7 +145,8 @@ def topup_minute_for_window(close_all, concepts, pool, end_date) -> int:
     if frames:
         new = pd.concat(frames, ignore_index=True)
         out = pd.concat([m5, new], ignore_index=True)
-        out = out.drop_duplicates(subset=["symbol", "datetime"]).sort_values(
+        # keep="last"：全指标新行覆盖旧 close-only 行（与日线路径同口径）
+        out = out.drop_duplicates(subset=["symbol", "datetime"], keep="last").sort_values(
             ["symbol", "datetime"]).reset_index(drop=True)
         out.to_parquet(f, index=False)
         print(f"[minute] +{len(new)} bar 写回")
