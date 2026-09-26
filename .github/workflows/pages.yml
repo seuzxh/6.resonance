@@ -37,10 +37,11 @@ jobs:
         working-directory: site/.vitepress/dist
         run: |
           set -e
-          # cleanUrls 平铺 html（nav.html、docs/xxx.html…）→ dir/index.html；
-          # diagrams/ 是 public 直通的独立交互图，保持原路径不动
+          # cleanUrls 平铺 html（nav.html、docs/xxx.html、docs/<组>/xxx.html…）
+          # → dir/index.html；diagrams/ 是 public 直通的独立交互图，保持原路径不动
+          # docs/<组>/ 一层：2026-09-26 docs 重组为 spec/ops/research/data 四组
           shopt -s nullglob
-          for f in *.html docs/*.html; do
+          for f in *.html docs/*.html docs/*/*.html; do
             case "${f##*/}" in index.html|404.html) continue ;; esac
             d="${f%.html}"; mkdir -p "$d"; mv "$f" "$d/index.html"
           done
