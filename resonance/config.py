@@ -25,6 +25,7 @@ REFRESH_TOKEN_PATHS = (
     Path("/home/zxh/qlib_data/scripts/verify_data.py"),
     Path("/home/zxh/qlib_data/scripts/qlib_dumper/instrument_source.py"),
     Path("/home/zxh/qlib_data/scripts/daily_update.py"),
+    Path.home() / ".bashrc",  # 本机实际配置处（export IFIND_REFRESH_TOKEN=…）
 )
 
 # --- 指数池 ---

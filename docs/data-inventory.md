@@ -6,10 +6,13 @@
 
 ## 一、存放位置与权威性
 
+> 2026-09-26 起 worktree（minute-exec）已并回 master 并删除：代码经 git merge
+> （2982601），生产数据缓存与 OOS 运行产物已 rsync 回主仓——**主仓
+> `data/cache/` 即唯一生产副本**，OOS runner 今后在主仓运行。
+
 | 位置 | 角色 | 最后写入（mtime 证据） |
 |---|---|---|
-| `.worktrees/minute-exec/data/cache/` | **生产活跃副本**：OOS runner 增量写入 | 2026-09-24 13:59（daily/5min） |
-| `data/cache/`（master 主仓） | 基线复现快照，已停更 | 2026-09-19（基线冻结时点） |
+| `data/cache/`（master 主仓） | **唯一生产副本**：OOS runner 增量写入 | 2026-09-26 01:31（自 worktree 并回；runner 最后运行 09-26 00:33） |
 | `~/.qlib/qlib_data/` | 外部共享 qlib 库，**只读**，非本项目采集 | cron 日更（见 §三） |
 
 **重要**：`data/` 下所有行情文件均被 `.gitignore` 排除（`data/cache/`、
@@ -19,14 +22,15 @@
 
 ## 二、行情数据集明细
 
-以下明细以 **worktree 生产副本** 为准；master 快照差异单独标注。
+以下明细以主仓生产副本为准（2026-09-26 并回后数字；master 旧基线快照已被覆盖，
+历史快照差异描述随之作废）。
 
-### 1. 日线 `daily_bars.parquet`（29.6MB）
+### 1. 日线 `daily_bars.parquet`（29.4MB）
 
 | 维度 | 值 |
 |---|---|
-| 规模 | 593,258 行 × 546 标的（每标的最长 1,169 交易日） |
-| 时间范围 | 2021-12-01 ~ 2026-09-23（原始采集自 2024-10-08 起；前段 2021-12~2024-10 为 2022-24 时间外推验证补采，`work/collect_hist_2022.py`） |
+| 规模 | 593,804 行 × 546 标的（每标的最长 1,169 交易日） |
+| 时间范围 | 2021-12-01 ~ 2026-09-24（原始采集自 2024-10-08 起；前段 2021-12~2024-10 为 2022-24 时间外推验证补采，`work/collect_hist_2022.py`） |
 | 字段 | symbol, date, pre_close, open, high, low, close, pct_chg, volume, amount, turnover_ratio |
 | 复权 | 不复权（iFinD history_data，CPS=0） |
 
@@ -40,26 +44,35 @@
 932000.CSI 中证2000（已退役，见 §四）
 ```
 
-master 快照差异：542 标的（.TI 531 + 非 .TI 11），2024-10-08 ~ 2026-09-18，
-258,236 行——缺 000001.SH / 399001.SZ（V4.1 新增）与 883417.TI 等 2 个 .TI。
+master 快照差异：09-26 并回后旧快照（542 标的、止于 09-18）已被生产副本覆盖，
+不再存在第二套副本。
 
-### 2. 5 分钟 `minute5_bars.parquet`（11.6MB）
+### 2. 5 分钟 `minute5_bars.parquet`（88.3MB）
 
 | 维度 | 值 |
 |---|---|
-| 规模 | 1,561,388 行 × 404 标的（.TI 392 + 12 非 .TI，V4.1 九池与 V4.3 三锚全部在内） |
+| 规模 | 1,578,020 行 × 404 标的（.TI 392 + 12 非 .TI，V4.1 九池与 V4.3 三锚全部在内） |
 | 时间范围 | 2025-09-22 ~ 2026-09-23（受 HF 分钟留存期 ~1 年限制，硬下界） |
-| 字段 | 仅 close（省配额口径；生产栈只用尾盘 24 根重排） |
+| 字段 | 9 指标：open, high, low, close, avg_price, volume, amount, change, change_ratio（接口原样直取，不做本地推导；2026-09-26 全量回补完成） |
 | 时隙网格 | bar **结束时刻** 09:35~11:30 + 13:05~15:00，48 根/日（注意与基础库 5min 日历 50 槽制不同，见 §六） |
 
-master 快照：400 标的 / 1,358,688 行，同下界至 2026-09-18。
+指标量纲（2026-09-26 实测，值均为接口原样）：`change` = close − 前一根 bar
+收盘（当日首根对前收）；`change_ratio` = change/前收×100（**百分数**口径）；
+**指数/概念代码的 `avg_price` 是成分股均价量级（数十元档），不是指数点位**
+——对指数类代码 avg_price 不落在 [low, high] 内属正常，勿当 vwap 用于指数。
+**回补终态（2026-09-26）**：全指标行 1,553,424 / 1,578,020（98.4%）；剩余
+close-only 24,596 行 = 2025-09-22~25 共 4 天 × 176 codes，已滚出 trial 账户
+一年留存窗口，**永久不可回取**（回补实耗 ≈14.0M dataVol / 5,600+ 请求）。
+
+master 快照：同文件（09-26 并回后单一副本；此前 400 标的 / 1,358,688 行的旧快照已覆盖）。
 
 ### 3. 60 分钟 `minute_bars.parquet`（1.4MB）——已证伪封存
 
-198,312 行 × 207 标的（分钟验证窗 Top10 并集清单），仅 close，4 bar/日
-（10:30/11:30/14:00/15:00），2025-09-22 ~ 2026-09-18。时点择时探索已证伪
-（2026-09-19），**不再更新**，仅作历史归档；后续任何用途需先读
-experiment-playbook §三负结论登记。
+198,312 行 × 207 标的（分钟验证窗 Top10 并集清单），4 bar/日
+（10:30/11:30/14:00/15:00），2025-09-22 ~ 2026-09-18。2026-09-26 起同样支持
+9 指标扩展（`work/collect_minute.py --backfill` 回补，全量约 1.78M dataVol），
+默认不回补。时点择时探索已证伪（2026-09-19），**不再增量更新**，仅作历史
+归档与后续研究复用；任何用途需先读 experiment-playbook §三负结论登记。
 
 ### 4. 概念目录 `data/concept_catalog.csv`
 
@@ -79,9 +92,10 @@ experiment-playbook §三负结论登记。
 | `minute_coverage.json` | master | HF 5min 覆盖清单：have=400 / miss=142（miss 全部为 .TI 概念 141 + 932000.CSI） |
 | `minute_fetch_list.json` | master | 60min 采集清单 207 码（§二.3 的采集对象） |
 | `top10_union.json` | master | 分钟验证窗日线 Top10 并集 279 码 |
-| `v41_topup_audit.csv` | worktree | V4.1 Top5 概念 5min 增量补采审计 35 行（code, 区间, 应得/实得天数, bar 数） |
-| `v41_topup_nocover.json` | worktree | 无 HF 覆盖不再重试名单：`["932000.CSI"]` |
-| `oos_nocover.json` | worktree | OOS 自愈分钟无覆盖名单（当前空） |
+| `v41_topup_audit.csv` | cache | V4.1 Top5 概念 5min 增量补采审计 35 行（code, 区间, 应得/实得天数, bar 数） |
+| `v41_topup_nocover.json` | cache | 无 HF 覆盖不再重试名单：`["932000.CSI"]` |
+| `oos_nocover.json` | cache | OOS 自愈分钟无覆盖名单（当前空） |
+| `moneyflow_hourly.parquet`（192KB）/ `moneyflow_concept.parquet`（4.7MB） | cache | 2026-09-25 资金流探索数据（锚级小时资金 + 概念日资金；探索已收口，V4.3 零改动，见 playbook §三/§四） |
 
 ## 三、外部 qlib 库（只读依赖，非本项目资产）
 
@@ -109,21 +123,20 @@ experiment-playbook §三负结论登记。
 3. **概念 5min 覆盖 389/529**：142 个概念指数无 HF 分钟数据，属数据源边界，
    非采集缺失。
 4. **待补**：883404（同花顺情绪指数）日线尚未采集（配额恢复后补齐）。
-5. master 快照不含 V4.1 新增代码（000001.SH/399001.SZ/883417.TI），复现
-   V4.1+ 口径必须用 worktree 副本。
+5. ~~master 快照不含 V4.1 新增代码~~ 09-26 并回后已无此问题（单一生产副本）。
 
 ## 五、采集与更新链路
 
 | 脚本（work/） | 数据源 | 产出 |
 |---|---|---|
 | `collect.py` | iFinD history_data（10 码/请求，断点续采） | concept_catalog + 全量日线 |
-| `collect_minute5.py` | iFinD high_frequency（按需矩阵：信号日+3 日回看） | minute5_bars（全时段） |
+| `collect_minute5.py` | iFinD high_frequency（按需矩阵：信号日+3 日回看；09-26 起 9 指标直取，`--backfill` 回补 close-only 历史） | minute5_bars（全时段） |
 | `collect_v41.py` | iFinD（V4.1 两新代码日线+5min） | 增量并入 daily/minute5 |
 | `collect_v41_topup.py` | iFinD HF（下午盘 24bar 省配额口径） | 9 池 Top5 概念 5min 增量 + audit |
 | `collect_hist_2022.py` | iFinD（2021-12→2024-10 长区间单请求） | 日线前段扩展 |
 | `collect_v41_qlib.py` | 本地 qlib bin（只读） | 000001.SH/399001.SZ 日线补采 |
-| `collect_minute.py` | iFinD HF（60min） | minute_bars（已封存） |
-| `signal_daily.py` | iFinD（增量日线 + 自愈分钟 + 无状态重放） | OOS 四轨信号与净值，**并日增 data/cache** |
+| `collect_minute.py` | iFinD HF（60min；09-26 起支持 9 指标 `--backfill` 回补） | minute_bars（已封存） |
+| `signal_daily.py` | iFinD（增量日线 + 自愈分钟（09-26 起全指标直取）+ 无状态重放） | OOS 四轨信号与净值，**并日增 data/cache** |
 
 运行纪律（09-24 事故后固化）：runner **只能在 15:05 后跑**（盘中硬闸）；
 分钟自愈带 keep-last/当日新鲜度检查；HF 15:00 bar 作收盘价链路。
@@ -137,8 +150,8 @@ runner 当前状态见 CLAUDE.md（暂停中，用户通知后开启）。
 - **5min 时隙**：bar 结束时刻制、48 根/日；基础库 5min 日历为 09:30/13:00
   起的 50 槽制，两者网格不同。
 - **幸存者偏差**：概念目录为 2026-09-19 存活快照，结论措辞须按 playbook L3。
-- **两套副本**：跑实验前确认用的是哪套 cache（`config.CACHE_DIR` 随 checkout
-  走）；V4.1+ 口径一律以 worktree 副本为准。
+- **单一副本**：09-26 起 worktree 已并回删除，`config.CACHE_DIR` 恒指主仓
+  `data/cache/`；OOS runner、回补、后续实验均在主仓运行。
 
 ## 七、复核与更新本文档
 
@@ -146,12 +159,11 @@ runner 当前状态见 CLAUDE.md（暂停中，用户通知后开启）。
 
 ```python
 import pandas as pd
-for p in ["data/cache", ".worktrees/minute-exec/data/cache"]:
-    for n in ["daily_bars.parquet", "minute5_bars.parquet"]:
-        df = pd.read_parquet(f"{p}/{n}")
-        print(p, n, len(df), df["symbol"].nunique(),
-              df["date" if "date" in df else "datetime"].min(),
-              df["date" if "date" in df else "datetime"].max())
+for n in ["daily_bars.parquet", "minute5_bars.parquet"]:
+    df = pd.read_parquet(f"data/cache/{n}")
+    print(n, len(df), df["symbol"].nunique(),
+          df["date" if "date" in df else "datetime"].min(),
+          df["date" if "date" in df else "datetime"].max())
 ```
 
 OOS 日增或池调整后，重跑上式并更新 §一/§二 的数字与 mtime。
