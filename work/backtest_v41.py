@@ -32,7 +32,6 @@ import pandas as pd  # noqa: E402
 from resonance import config  # noqa: E402
 from resonance.v3 import MinuteBarProvider, V3Params  # noqa: E402
 from work.backtest_v3 import evaluate, load_wide  # noqa: E402
-from work.opt_v3 import load_production  # noqa: E402
 
 OUT_DIR = config.OUTPUTS_DIR / "v4"
 V41_PHASES = ["2025-09-22", "2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26"]
@@ -138,11 +137,11 @@ def main() -> int:
                   f"剔除 {np.median([r['m_excluded'] for r in sub]):.0f})")
 
     print("\n" + "=" * 96)
-    print("三、同窗参照（V3 规格栈 / V3+防御层终栈，旧 13 池，10bp，5 相位中位）")
+    print("三、同窗参照（V3 规格栈，旧 13 池，10bp，5 相位中位）")
     from resonance.v3 import V3Backtester
     from resonance.backtest import perf_stats
 
-    for name, p in (("V3规格栈", V3Params()), ("V3+防御层", V3Params(**load_production()))):
+    for name, p in (("V3规格栈", V3Params()),):
         tots, dds, shs = [], [], []
         for start in V41_PHASES:
             bt = V3Backtester(close_all, concepts, params=p.with_(cost_bp=10.0))

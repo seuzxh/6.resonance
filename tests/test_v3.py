@@ -23,7 +23,7 @@ from resonance.v3 import (
     V3Params,
     compound_window,
     dynamic_half_life,
-    up_resonance_scores,
+    up_resonance_scores_np,
     v3_ranking,
     yearly_returns,
 )
@@ -54,26 +54,25 @@ def run_v3(close, start_idx, **param_kw):
 def test_up_resonance_scores_hand_computed():
     leader = pd.Series([0.01, 0.02])
     concepts = pd.DataFrame({"A": [0.01, 0.01], "B": [-0.01, 0.02]})
-    out = up_resonance_scores(leader, concepts, half_life=1)
-    # w = [0.5, 1.0]（age 1, 0）
-    a = out[out["concept"] == "A"].iloc[0]
-    b = out[out["concept"] == "B"].iloc[0]
+    out = up_resonance_scores_np(leader.to_numpy(), concepts.to_numpy(), 1.0)
+    # w = [0.5, 1.0]（age 1, 0）；行序同列序（A, B）
+    a, b = out.iloc[0], out.iloc[1]
     assert a["sync"] == pytest.approx(1.0)
     assert b["sync"] == pytest.approx(2 / 3)
     assert a["capture"] == pytest.approx(0.015 / 0.025)
     assert b["capture"] == pytest.approx(0.02 / 0.025)
     assert a["score"] == pytest.approx(math.sqrt(0.6))
     assert b["score"] == pytest.approx(2 / 3 * math.sqrt(0.8))
-    assert out["concept"].iloc[0] == "A"  # 分数降序
+    assert a["score"] > b["score"]
 
 
 def test_up_resonance_scores_clip_and_empty():
     leader = pd.Series([0.01, 0.01])
     concepts = pd.DataFrame({"BIG": [0.10, 0.10]})  # 捕获率 10 → clip 2
-    out = up_resonance_scores(leader, concepts, half_life=5)
+    out = up_resonance_scores_np(leader.to_numpy(), concepts.to_numpy(), 5.0)
     assert out["score"].iloc[0] == pytest.approx(math.sqrt(2.0))
     # 无上涨日 → 空表
-    empty = up_resonance_scores(pd.Series([-0.01, 0.0]), concepts, 5)
+    empty = up_resonance_scores_np(np.array([-0.01, 0.0]), concepts.to_numpy(), 5.0)
     assert empty.empty
 
 
@@ -271,45 +270,6 @@ def test_no_lookahead():
     cut = close_a.index[15]
     pd.testing.assert_series_equal(out_a["nav_curve"].loc[:cut],
                                    out_b["nav_curve"].loc[:cut])
-
-
-def test_stop_mode_minute_exits_intraday():
-    """minute 模式：触发 bar 收盘即时离场（当日收益 = mark/前收）。"""
-
-    class FakeMarks:
-        def __init__(self, close, marks):
-            self.close = close
-            self.marks = marks  # {date: {code: [(ts, price), ...]}}
-
-        def day_marks(self, code, date):
-            return self.marks.get(date, {}).get(code, [])
-
-    n = 22
-    sched = {
-        "LDR": [0.01] * n,
-        "C_GOOD": [0.012] * n, "C_MID": [0.005] * n,
-        "C_NEWC": [0.005] * n, "C_ALT": [0.005] * n,
-    }
-    close = mk_close(sched, n)
-    # i13 盘中 mark = 前收×0.90（−10%，击穿 5% 止损）→ 当日以 mark 价离场
-    d13 = close.index[13]
-    prev_close = float(close["C_GOOD"].iloc[12])
-    mark = prev_close * 0.90
-    marks = {d13: {"C_GOOD": [(d13 + pd.Timedelta(hours=10), mark)]}}
-    bt = V3Backtester(close, CONCEPTS, broad_codes=BROAD, allA_code="ALLA",
-                      params=V3Params(stop_mode="minute"),
-                      minute_prices=FakeMarks(close, marks))
-    out = bt.run(close.index[11])
-    trades = out["trades"]
-    # i13 盘中止损离场；entry_block_until=14（含）→ i15 信号、i16 再入场 C_GOOD
-    assert list(trades["type"]) == ["entry", "stop", "entry"]
-    assert trades.iloc[1]["date"] == d13
-    assert trades.iloc[1]["price"] == pytest.approx(mark)
-    assert trades.iloc[2]["date"] == close.index[16]
-    assert trades.iloc[2]["to"] == "C_GOOD"
-    nav13 = out["nav_curve"].loc[d13]
-    assert nav13 == pytest.approx(0.90)   # nav = mark/前收，无成本
-    assert out["stats"]["intraday_exits"] == 1
 
 
 def test_yearly_returns():

@@ -26,10 +26,6 @@
   不产生入场信号；cooldown=0 时仅阻塞 S 当天。
 - 闸门失败/无候选在检查日均触发"退出至现金"（§6.6 的自然推论）。
 
-stop_mode='minute'（R2 剂量对照用）：止损改为逐 5min bar 检查，触发即按
-触发 bar 收盘价卖出（当日离场，不再 T+1）；缺分钟数据当日退化为收盘口径
-并计数（沿 minute-exec 协议）。minute_prices 为 exec_minute.MinutePrices。
-
 指数收益研究口径：概念指数不可直接交易；成本为统一压力假设。
 """
 from __future__ import annotations
@@ -58,13 +54,7 @@ class V3Params:
     stop_loss: float = 0.05
     cooldown: int = 1
     cost_bp: float = 0.0
-    stop_mode: str = "close"  # 'close' | 'minute'
     exec_lag: int = 1         # 1=信号 T 收盘 → T+1 收盘成交（V3 文档口径）；0=信号当日收盘成交
-    # R9 防御层（docs/v3-optimization-design.md §三.R9）：全A 近 dd_window 日
-    # 最大回撤幅度 > defense_dd 时禁开新仓；strong=True 时持仓检查日亦退出至
-    # 现金（与闸门失败同构），False 仅禁止空仓入场。0 = 关闭。
-    defense_dd: float = 0.0
-    defense_strong: bool = True
     # V4.1 分钟重排层（docs/v4-best-plan.md §7）：daily_top > 0 时启用——日线
     # 上涨共振先选 Top(daily_top)，再按 5min K线纯分钟上涨共振重排
     # （0% 日线 + 100% 分钟）；topk 缓冲作用于最终排名。minute_bars 为窗内
@@ -109,40 +99,6 @@ def dynamic_half_life(
     if m <= dd_tiers[1]:
         return half_lives[1]
     return half_lives[2]
-
-
-def up_resonance_scores(
-    leader_rets: pd.Series, concept_rets: pd.DataFrame, half_life: float
-) -> pd.DataFrame:
-    """上涨共振评分（输入为已切片的 res_window 日收益率，§4.3 公式）。
-
-    返回 DataFrame[concept, sync, capture, score] 按 score 降序（并列按代码
-    升序，保证确定性）。领先指数窗口内无上涨日 → 空表（闸门下不会发生）。
-    """
-    empty = pd.DataFrame(columns=RANK_COLS)
-    n = len(leader_rets)
-    if n == 0 or concept_rets.shape[1] == 0:
-        return empty
-    age = np.arange(n - 1, -1, -1, dtype=float)
-    w = 0.5 ** (age / float(half_life))
-    y = leader_rets.to_numpy(dtype=float)
-    X = concept_rets.to_numpy(dtype=float)
-    if not np.isfinite(y).all() or not np.isfinite(X).all():
-        return empty
-    up = y > 0
-    if not up.any():
-        return empty
-    sync = (w[up, None] * (X[up] > 0)).sum(axis=0) / w[up].sum()
-    cap_den = float((w * np.clip(y, 0.0, None)).sum())
-    if cap_den <= 0:
-        return empty
-    capture = (w[:, None] * np.clip(X, 0.0, None)).sum(axis=0) / cap_den
-    score = sync * np.sqrt(np.clip(capture, 0.0, 2.0))
-    out = pd.DataFrame(
-        {"concept": list(concept_rets.columns), "sync": sync,
-         "capture": capture, "score": score}
-    )
-    return out.sort_values(["score", "concept"], ascending=[False, True]).reset_index(drop=True)
 
 
 def v3_ranking(
@@ -190,7 +146,11 @@ def v3_ranking(
                     n_candidates=len(cand), gate=True)
     if not cand:
         return empty
-    return up_resonance_scores(y, rw[cand], h)
+    out = up_resonance_scores_np(y.to_numpy(dtype=float), rw[cand].to_numpy(dtype=float), h)
+    if out.empty:
+        return empty
+    out.insert(0, "concept", cand)
+    return out.sort_values(["score", "concept"], ascending=[False, True]).reset_index(drop=True)
 
 
 class V3Signals:
@@ -285,11 +245,19 @@ class V3Signals:
 
 
 def up_resonance_scores_np(y: np.ndarray, X: np.ndarray, half_life: float) -> pd.DataFrame:
-    """up_resonance_scores 的 numpy 内核（列为候选顺序，不含代码名）。"""
+    """上涨共振评分内核（§4.3 公式；y=锚收益率向量，X=候选×日矩阵，EW 权重）。
+
+    返回 DataFrame[sync, capture, score]（行序同 X 列序，不含代码名）；
+    输入含 NaN / 窗口内无上涨日 → 空表。
+    """
     n = len(y)
+    if n == 0 or X.size == 0 or not np.isfinite(y).all() or not np.isfinite(X).all():
+        return pd.DataFrame(columns=["sync", "capture", "score"])
     age = np.arange(n - 1, -1, -1, dtype=float)
     w = 0.5 ** (age / float(half_life))
     up = y > 0
+    if not up.any():
+        return pd.DataFrame(columns=["sync", "capture", "score"])
     sync = (w[up, None] * (X[up] > 0)).sum(axis=0) / w[up].sum()
     cap_den = float((w * np.clip(y, 0.0, None)).sum())
     if cap_den <= 0:
@@ -405,7 +373,6 @@ class V3Backtester:
         broad_codes: list[str] | None = None,
         allA_code: str = "883957.TI",
         params: V3Params | None = None,
-        minute_prices=None,
         minute_bars_provider=None,
         entry_gate: pd.Series | None = None,
         exit_grid: pd.DataFrame | None = None,
@@ -425,9 +392,6 @@ class V3Backtester:
             )
         self.allA = allA_code
         self.p = params or V3Params()
-        self.mp = minute_prices
-        if self.p.stop_mode == "minute":
-            assert self.mp is not None, "stop_mode='minute' 需要 minute_prices"
         self.mbp = minute_bars_provider
         if self.p.daily_top > 0:
             assert self.mbp is not None, "daily_top>0（V4.1 分钟重排）需要 minute_bars_provider"
@@ -507,7 +471,6 @@ class V3Backtester:
             "entries": 0, "switches": 0, "exits": 0, "stop_count": 0,
             "check_days": 0, "gate_fail_days": 0, "no_leader_days": 0,
             "flat_days": 0, "held_days": 0, "signal_days": 0,
-            "degraded_days": 0, "intraday_exits": 0,
             "entry_blocked_days": 0, "gate_missing_days": 0,
             "leaders": {}, "half_lives": {},
         }
@@ -570,39 +533,14 @@ class V3Backtester:
 
         for i in range(s, e):
             date = cal[i]
-            # --- 1) 当日计收益（T+2 起算；minute 模式含盘中止损路径）---
+            # --- 1) 当日计收益（T+2 起算）---
             stopped_today = False
             if holding is not None and exec_i is not None and i > exec_i:
                 c_prev = close_at(i - 1, holding)
-                if p.stop_mode == "minute":
-                    marks = self.mp.day_marks(holding, date) if self.mp else []
-                    if not marks:
-                        st["degraded_days"] += 1
-                    for ts, mk in marks:
-                        if math.isfinite(mk) and entry_px is not None \
-                                and mk <= entry_px * (1.0 - p.stop_loss):
-                            factor = (mk / c_prev
-                                      if math.isfinite(c_prev) and c_prev > 0
-                                      else float("nan"))
-                            if math.isfinite(factor):
-                                nav *= factor * (1.0 - cost)
-                            stops.append({"signal_date": date, "exec_date": date,
-                                          "code": holding, "price": mk,
-                                          "day_ret": factor - 1.0})
-                            trades.append({"date": date, "type": "stop",
-                                           "from": holding, "to": None,
-                                           "price": mk, "nav": nav})
-                            st["stop_count"] += 1
-                            st["intraday_exits"] += 1
-                            holding, entry_px, exec_i = None, None, None
-                            entry_block_until = i + p.cooldown
-                            stopped_today = True
-                            break
-                if not stopped_today:
-                    c_i = close_at(i, holding)
-                    if math.isfinite(c_i) and math.isfinite(c_prev) and c_prev > 0:
-                        nav *= c_i / c_prev
-                        st["held_days"] += 1
+                c_i = close_at(i, holding)
+                if math.isfinite(c_i) and math.isfinite(c_prev) and c_prev > 0:
+                    nav *= c_i / c_prev
+                    st["held_days"] += 1
 
             # --- 2) 执行滞后信号（exec_lag=1：T+1 收盘成交）---
             if p.exec_lag == 1 and pending is not None and not stopped_today:
@@ -610,21 +548,14 @@ class V3Backtester:
 
             # --- 3) 今日收盘信号 ---
             if not stopped_today:
-                defense_on = (p.defense_dd > 0
-                              and self.sig.dd_mag[i] > p.defense_dd)
                 if holding is not None:
                     c_i = close_at(i, holding)
                     do_rank = exec_i is not None and i - exec_i >= p.min_hold
-                    if p.stop_mode == "close" and entry_px is not None \
+                    if entry_px is not None \
                             and math.isfinite(c_i) \
                             and c_i <= entry_px * (1.0 - p.stop_loss):
                         pending = {"type": "sell", "from": holding,
                                    "reason": "stop", "signal_date": date}
-                    elif do_rank and defense_on and p.defense_strong:
-                        st["check_days"] += 1
-                        record_info(i, date)
-                        pending = {"type": "sell", "from": holding,
-                                   "reason": "defense", "signal_date": date}
                     elif do_rank:
                         st["check_days"] += 1
                         record_info(i, date)
@@ -651,7 +582,7 @@ class V3Backtester:
                                 if holding not in top:
                                     pending = {"type": "switch", "from": holding,
                                                "to": top[0], "signal_date": date}
-                elif i > entry_block_until and not defense_on:
+                elif i > entry_block_until:
                     record_info(i, date)
                     gate_ok = True
                     if self._gate_blocked is not None:
