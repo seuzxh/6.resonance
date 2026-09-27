@@ -13,5 +13,8 @@
 - `minute_resonance/`：分钟共振设计验证（report.md 在库）。
 - `index_backtest_framework/`：回测框架复算（report.md 在库）。
 - `oos/`：样本外验证逐日信号 / 净值 / 审计（四轨，运行中）。
+- `v4/`：backtest_v41 现行产物目录（nav/trades/phase_table）。
 
-旧版本交付（v3 / v4 / archive）已于 2026-09-23 清理，git 历史（≤0790071）可溯。
+旧版本交付 v3 已于 2026-09-27 删除（冻结参数快照录
+[docs/ops/version-catalog.md](../docs/ops/version-catalog.md)）；
+`archive/` 为已归档实验保留；版本目录见同上链接。

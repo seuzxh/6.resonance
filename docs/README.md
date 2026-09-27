@@ -17,6 +17,8 @@
 - [oos-validation-design.md](ops/oos-validation-design.md) — OOS 四轨 runner
   预注册设计：判据、运行纪律与三道数据防线。runner 为
   `ops/signal_daily.py`（15:05 后运行、OOS 起点无状态重放、幂等）。
+- [version-catalog.md](ops/version-catalog.md) — 版本目录：tag、口径要点、
+  结论位置与归档记录（版本生命周期规则见 CLAUDE.md）。
 
 ## research/ 寻优研究（历史过程——写侧）
 

@@ -475,7 +475,7 @@ Expected: 全绿；总数较 T1 基线下降（死代码+钩子用例移除，�
 - [ ] **Step 7: Commit**
 
 ```bash
-git add -A && git commit -m "refactor T3: 死代码链退场（metrics/旧minute/RotationBacktester/资金流钩子/backtest_v3）；dataio/cache.py 诞生（load_wide 落户+append_rows 幂等落盘）"
+git add -A && git commit -m "refactor T3: 死代码链退场（metrics/旧minute/RotationBacktester/资金流钩子/backtest_v3）；dataio/cache.py 诞生（load_wide 落户+append_rows 幂等落盘）。删除文件冻结于 tag v3.0.0-up-resonance-frozen 与 legacy-stack-frozen（docs/ops/version-catalog.md）"
 ```
 
 ---
@@ -624,7 +624,7 @@ git add -A && git commit -m "refactor T5: ifind 归位 dataio；outputs 读侧�
 - [ ] **Step 4: 全量测试 + Commit**
 
 ```bash
-git add -A && git commit -m "refactor T6: perf_stats/yearly_returns 归位 services/performance；旧 backtest.py 终删"
+git add -A && git commit -m "refactor T6: perf_stats/yearly_returns 归位 services/performance；旧 backtest.py 终删（RotationBacktester 冻结于 tag legacy-stack-frozen）"
 ```
 
 ---
