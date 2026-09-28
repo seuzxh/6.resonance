@@ -452,7 +452,7 @@ research/qlib_route_a/qlib_pipeline.py      # 因子表达式清单 + DatasetH �
 | 步骤 | 内容 | 门槛 |
 |---|---|---|
 | X0 | 数据层注入冒烟（三接口 + init + day/5min 双频表达式核对） | ✅ 2026-09-28 已通过（`research/qlib_route_a/qlib_provider_smoke.py`，exit=0） |
-| X0' | provider 固化为 `research/qlib_route_a/qlib_provider.py` + 单元测试 | 冒烟 A–D 四项断言进测试（叶子字段相等/表达式与 pandas 核对/NaN 语义/双频日历） |
+| X0' | provider 固化 + 单元测试 | ✅ 2026-09-29（合成测试 6 项 + 真数据冒烟复核；另踩实契约⑩右边界钳制） |
 | X1 | 5min 因子清单冻结 + `qlib_pipeline.py` 特征管道 | 因子覆盖率与 NaN 报告（按 10.4.2 日历口径） |
-| X2 | F8 基线复跑 + 模型训练 + 时间切分验证 | IC/Rank IC 落盘 |
-| X3 | 模型分替换 F8 的 5 相位对照 | 预注册判据裁决（playbook §一） |
+| X2 | F8 基线复跑 + 模型训练 + 时间切分验证 | ✅ 2026-09-29（pred 14,393 条；ic_report.md 落盘） |
+| X3 | 模型分替换 F8 的 5 相位对照 | ✅ 2026-09-29 判决 **HARMFUL**（中位差 −12.30pp、0/5 相位；见 outputs/qlib_ml/report.md §五） |

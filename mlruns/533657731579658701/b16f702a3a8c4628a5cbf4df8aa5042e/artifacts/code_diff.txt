@@ -1,0 +1,71 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index f75b5a4..5ca1444 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -14,7 +14,11 @@ REST + 本地 qlib 备用链路。领域词汇表见
+ 
+ ## 硬约束
+ 
+-1. 只使用 conda 环境 `resonance`，禁止调用系统 Python。
++1. 只使用 conda 环境 `resonance`，禁止调用系统 Python。**例外（2026-09-29
++   批准，随路线 A 选定生效）**：qlib 验证/扩展轨脚本（research/qlib_route_a/
++   与 tests/qlib_route_a/）用 conda 环境 `qlib`（pyqlib 0.9.7；跨环境只经
++   outputs/ 下 parquet 契约文件交换，依据 docs/spec/v44-open-exec-plan.md
++   与 docs/research/qlib-validation-plan.md §九）。
+ 2. 所有网络调用必须在测试中 mock，测试必须离线可运行。
+ 3. 禁止未来数据（T 日信号最早 T+1 计收益）、硬编码凭证。
+ 4. refresh_token 读全局源或环境变量 `IFIND_REFRESH_TOKEN`，绝不复制进仓库；
+@@ -43,6 +47,9 @@ conda run -n resonance python -m pytest -q            # 离线测试（45 个）
+ conda run -n resonance python ops/probe.py           # iFinD 网络冒烟
+ conda run -n resonance python ops/signal_daily.py    # OOS 每日 runner（暂停中，用户通知后开启）
+ conda run -n resonance python ops/backtest_v41.py    # 生产栈回测复现
++conda run -n qlib python -m pytest tests/qlib_route_a/test_qlib_provider.py tests/qlib_route_a/test_qlib_pipeline.py -v  # qlib 侧测试（qlib env）
++conda run -n qlib python research/qlib_route_a/qlib_pipeline.py        # 5min 因子+训练+IC
++conda run -n resonance python research/qlib_route_a/qlib_f8_compare.py # X3 五相位对照
+ ```
+ 
+ ## 关键参数位置
+diff --git a/docs/research/experiment-playbook.md b/docs/research/experiment-playbook.md
+index f558605..f454e67 100644
+--- a/docs/research/experiment-playbook.md
++++ b/docs/research/experiment-playbook.md
+@@ -92,6 +92,7 @@
+ | 目录 | 剔大杂烩（零影响）；203 交集（宽度坍塌诊断） | 对话记录 2026-09-22 |
+ | 数据 | 微盘股 700050 两账号无 HF 覆盖；HF 一年滚动限制；iFinD 月度配额池（-4318）多轮耗尽 | ifind.py 注释、各采集脚本 |
+ 
++- **X3 学习化模型替换分钟重排（2026-09-29，qlib 路线 A）**：LGBModel（8 个 5min 因子 + F1–F7 静态混入，时间切分）预测分替换 F8 重排，test 段 5 相位中位 **−12.30pp、0/5 相位，判 HARMFUL**；模型分 Rank IC −0.037（t=−1.29）与单因子 TAIL_MOM24 +0.156（t=2.41）并存——弱信号被合并稀释。重开条件：换特征集/换目标/加 walk-forward（L5 交互），须新预注册。证据：outputs/qlib_ml/{report.md §五, x3_phases.csv}。
+ ## 四、数据边界备忘
+ 
+ > 配图：[数据流图](../diagrams/data-pipeline-dataflow.html)——双链路采集、
+diff --git a/docs/research/qlib-validation-plan.md b/docs/research/qlib-validation-plan.md
+index 2dbd6d6..b622dba 100644
+--- a/docs/research/qlib-validation-plan.md
++++ b/docs/research/qlib-validation-plan.md
+@@ -452,7 +452,7 @@ research/qlib_route_a/qlib_pipeline.py      # 因子表达式清单 + DatasetH 
+ | 步骤 | 内容 | 门槛 |
+ |---|---|---|
+ | X0 | 数据层注入冒烟（三接口 + init + day/5min 双频表达式核对） | ✅ 2026-09-28 已通过（`research/qlib_route_a/qlib_provider_smoke.py`，exit=0） |
+-| X0' | provider 固化为 `research/qlib_route_a/qlib_provider.py` + 单元测试 | 冒烟 A–D 四项断言进测试（叶子字段相等/表达式与 pandas 核对/NaN 语义/双频日历） |
++| X0' | provider 固化 + 单元测试 | ✅ 2026-09-29（合成测试 6 项 + 真数据冒烟复核；另踩实契约⑩右边界钳制） |
+ | X1 | 5min 因子清单冻结 + `qlib_pipeline.py` 特征管道 | 因子覆盖率与 NaN 报告（按 10.4.2 日历口径） |
+-| X2 | F8 基线复跑 + 模型训练 + 时间切分验证 | IC/Rank IC 落盘 |
+-| X3 | 模型分替换 F8 的 5 相位对照 | 预注册判据裁决（playbook §一） |
++| X2 | F8 基线复跑 + 模型训练 + 时间切分验证 | ✅ 2026-09-29（pred 14,393 条；ic_report.md 落盘） |
++| X3 | 模型分替换 F8 的 5 相位对照 | ✅ 2026-09-29 判决 **HARMFUL**（中位差 −12.30pp、0/5 相位；见 outputs/qlib_ml/report.md §五） |
+diff --git a/research/README.md b/research/README.md
+index db55eaa..9aa2e38 100644
+--- a/research/README.md
++++ b/research/README.md
+@@ -29,7 +29,8 @@ qlib 验证与扩展轨（路线 A）的代码文件集中在子目录
+ - `qlib_route_a/qlib_provider_smoke.py`：**选定路线 A** 的数据层注入
+   冒烟（ParquetProvider 三接口 + qlib.init + 表达式引擎，day/5min 双频
+   逐项核对，2026-09-28 通过 exit=0；conda env `qlib`）。
+-- 待建（实施计划 T1–T6）：`qlib_route_a/qlib_provider.py`、
+-  `qlib_factor_export.py`、`qlib_pipeline.py`、`qlib_f8_compare.py`——
+-  见
+-  [实施计划](../docs/superpowers/plans/2026-09-29-qlib-routeA-5min-factors.md)。
++- 实施完成（2026-09-29 夜，T1–T7 全过）：`qlib_provider.py`、
++  `qlib_factor_export.py`、`qlib_pipeline.py`、`qlib_f8_compare.py` 全部
++  落盘并带合成测试；**X3 判决 HARMFUL（负结论已登记 playbook §三）**，
++  总结见 [outputs/qlib_ml/report.md](../outputs/qlib_ml/report.md)。实验收口
++  待用户过目报告后执行（收口即清理本目录）。

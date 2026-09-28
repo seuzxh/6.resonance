@@ -14,7 +14,11 @@ REST + 本地 qlib 备用链路。领域词汇表见
 
 ## 硬约束
 
-1. 只使用 conda 环境 `resonance`，禁止调用系统 Python。
+1. 只使用 conda 环境 `resonance`，禁止调用系统 Python。**例外（2026-09-29
+   批准，随路线 A 选定生效）**：qlib 验证/扩展轨脚本（research/qlib_route_a/
+   与 tests/qlib_route_a/）用 conda 环境 `qlib`（pyqlib 0.9.7；跨环境只经
+   outputs/ 下 parquet 契约文件交换，依据 docs/spec/v44-open-exec-plan.md
+   与 docs/research/qlib-validation-plan.md §九）。
 2. 所有网络调用必须在测试中 mock，测试必须离线可运行。
 3. 禁止未来数据（T 日信号最早 T+1 计收益）、硬编码凭证。
 4. refresh_token 读全局源或环境变量 `IFIND_REFRESH_TOKEN`，绝不复制进仓库；
@@ -43,6 +47,9 @@ conda run -n resonance python -m pytest -q            # 离线测试（45 个）
 conda run -n resonance python ops/probe.py           # iFinD 网络冒烟
 conda run -n resonance python ops/signal_daily.py    # OOS 每日 runner（暂停中，用户通知后开启）
 conda run -n resonance python ops/backtest_v41.py    # 生产栈回测复现
+conda run -n qlib python -m pytest tests/qlib_route_a/test_qlib_provider.py tests/qlib_route_a/test_qlib_pipeline.py -v  # qlib 侧测试（qlib env）
+conda run -n qlib python research/qlib_route_a/qlib_pipeline.py        # 5min 因子+训练+IC
+conda run -n resonance python research/qlib_route_a/qlib_f8_compare.py # X3 五相位对照
 ```
 
 ## 关键参数位置
