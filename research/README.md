@@ -29,7 +29,10 @@ qlib 验证与扩展轨（路线 A）的代码文件集中在子目录
 - `qlib_route_a/qlib_provider_smoke.py`：**选定路线 A** 的数据层注入
   冒烟（ParquetProvider 三接口 + qlib.init + 表达式引擎，day/5min 双频
   逐项核对，2026-09-28 通过 exit=0；conda env `qlib`）。
-- 实施完成（2026-09-29 夜，T1–T7 全过）：`qlib_provider.py`、
+- 验证轨（同日完成）：`qlib_harness.py`（P1 回测适配层）、
+  `qlib_bridge_export.py`（P2 信号桥+重放引擎，G2 45/45）、
+  `qlib_equivalence.py`（P3 ResonanceStrategy，E-Gate 45/45 逐笔一致）。
+- 扩展轨实施完成（2026-09-29 夜，T1–T7 全过）：`qlib_provider.py`、
   `qlib_factor_export.py`、`qlib_pipeline.py`、`qlib_f8_compare.py` 全部
   落盘并带合成测试；**X3 判决 HARMFUL（负结论已登记 playbook §三）**，
   总结见 [outputs/qlib_ml/report.md](../outputs/qlib_ml/report.md)。实验收口

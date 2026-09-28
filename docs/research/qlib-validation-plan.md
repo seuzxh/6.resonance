@@ -12,8 +12,9 @@
 > [spec/v44-open-exec-plan.md](../spec/v44-open-exec-plan.md)）；本文历史锚点数字均为旧收盘口径，
 > 重算前仅作参考。
 >
-> 状态：**P0 冒烟已通过（2026-09-26，research/qlib_route_a/qlib_smoke.py），其余阶段
-> 未开跑**；实施前需用户确认 §九 的待决策项。
+> 状态：**验证轨 P0–P3 与扩展轨 T1–T7 均已于 2026-09-29 完成**（G2/E-Gate
+> 45/45 双全过；X3 判决 HARMFUL）。§九 唯一遗留 = OOS 四轨处置待用户
+> 裁决。
 
 ## 一、验证什么：三个问题（qlib 在本项目中的定位）
 
@@ -172,7 +173,7 @@ min_hold=3（自执行日起最短持有）、stop_loss=5%（判定仍按收盘�
 `research/qlib_route_a/qlib_smoke.py` 通过（见 §二）。适配层需要的全部集成点都已
 确认，并随冒烟脚本一并归档。
 
-### P1 适配层固化 + 规范化门 D-Gate（1 天）
+### P1 适配层固化 + 规范化门 D-Gate —— ✅ 2026-09-29（research/qlib_route_a/qlib_harness.py；探针策略测试 2 项过，$open 成交/双边成本/账户终值自洽；E-8 补充：组合列重建不作准，对拍锚=逐笔+账户终值）
 
 **任务**：把冒烟里的临时拼装固化成 `research/qlib_harness.py`
 （qlib 环境）：
@@ -197,7 +198,7 @@ min_hold=3（自执行日起最短持有）、stop_loss=5%（判定仍按收盘�
    的集成冒烟沿用 `research/qlib_route_a/qlib_smoke.py` 的模式（离线、真数据、
    小窗口）。
 
-### P2 信号桥与执行解耦（1–2 天）
+### P2 信号桥与执行解耦 —— ✅ 2026-09-29（qlib_bridge_export.py；final_rank 3,268 行/654 信号日；**G2 45/45 全过且 nav 相对差全为 0（逐位一致）**）
 
 **任务**（resonance 环境，`research/qlib_bridge_export.py`）：
 
@@ -220,7 +221,7 @@ min_hold=3（自执行日起最短持有）、stop_loss=5%（判定仍按收盘�
 卖出与买入代码/价格按 float32 相等），净值终值相对差 ≤ 1e-9。一旦不
 一致，说明信号抽取环节有问题，修复并复核通过后再进 P3。
 
-### P3 qlib 等价回测 + 引擎门 E-Gate（2–3 天）
+### P3 qlib 等价回测 + 引擎门 E-Gate —— ✅ 2026-09-29（qlib_equivalence.py ResonanceStrategy；**E-Gate 45/45 逐笔一致**；实施中修两处移植缺陷：冷却期映射 off-by-one、价格 CSV 往返须按 float32 比较）
 
 **ResonanceStrategy**（qlib 环境，继承 `qlib.strategy.base.BaseStrategy`）：
 

@@ -50,6 +50,8 @@ conda run -n resonance python ops/backtest_v41.py    # 生产栈回测复现
 conda run -n qlib python -m pytest tests/qlib_route_a/test_qlib_provider.py tests/qlib_route_a/test_qlib_pipeline.py -v  # qlib 侧测试（qlib env）
 conda run -n qlib python research/qlib_route_a/qlib_pipeline.py        # 5min 因子+训练+IC
 conda run -n resonance python research/qlib_route_a/qlib_f8_compare.py # X3 五相位对照
+conda run -n resonance python research/qlib_route_a/qlib_bridge_export.py    # 验证轨信号桥+G2 门
+conda run -n qlib python research/qlib_route_a/qlib_equivalence.py           # 验证轨 E-Gate 逐笔门
 ```
 
 ## 关键参数位置

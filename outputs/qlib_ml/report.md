@@ -107,3 +107,24 @@ model_fallback_sparse=0），即对照是"分钟共振重排 vs 学习模型重�
    不在本轮范围内。
 4. 全量测试现状：resonance env 51 项全绿（49 旧 + 2 项 F1–F7 导出
    合成 + …以最终回归输出为准）；qlib env 14 项全绿。
+
+## 八、验证轨 P1–P3（2026-09-29 追加，同日完成）：三段等价链闭合
+
+自研引擎在 qlib 独立框架上**逐笔复算一致**（V4.4 开盘口径、3 窗 × 5 相位
+× {0,10,30}bp 全矩阵 45 配置）：
+
+| 等价段 | 门 | 结果 |
+|---|---|---|
+| ① V3Backtester ≡ ReplayBacktester（信号桥驱动，resonance env） | G2 逐笔门 | **45/45，nav 相对差全为 0（逐位一致）**——信号抽取零缺陷 |
+| ② ≡ ResonanceStrategy（qlib BaseStrategy + Exchange 记账，qlib env） | E-Gate 逐笔门 | **45/45 逐笔一致**（日期/类型/标的/价格 float32 相等） |
+
+组件：`qlib_harness.py`（P1 适配层，$open 成交+双边成本+账户自洽，探针
+测试 2 项）、`qlib_bridge_export.py`（P2 桥 3,268 行/654 信号日 + 重放
+引擎）、`qlib_equivalence.py`（P3 移植）。实施中修掉两处移植缺陷（冷却
+期映射 off-by-one、价格 CSV 往返按 float32 比较）与一处 E-8 口径澄清
+（组合列重建不作准，对拍锚 = 逐笔成交 + 账户终值）。报告：
+outputs/qlib_bridge/{g2_report.md, e_gate_report.md}。
+
+**含义**：本项目全部历史锚点所依赖的自研事件循环（含 V4.4 开盘成交
+语义），经 qlib Exchange/Account 独立记账复算逐笔验证无实现 bug——
+Q1（引擎正确性）以最严判据通过。
