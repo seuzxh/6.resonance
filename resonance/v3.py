@@ -55,6 +55,11 @@ class V3Params:
     cooldown: int = 1
     cost_bp: float = 0.0
     exec_lag: int = 1         # 1=信号 T 收盘 → T+1 收盘成交（V3 文档口径）；0=信号当日收盘成交
+    # V4.4 成交价口径（docs/spec/v44-open-exec-plan.md，2026-09-29 用户裁决）：
+    # 'close' = T+1 收盘成交、T+2 起计收益（V4.3 及全部历史锚点口径，默认值）；
+    # 'open'  = T+1 开盘成交、成交当日 open→close 计收益（需向引擎提供 open_all 开盘宽表；
+    #           止损判定基准仍为入场日收盘价，止损单 T+1 开盘执行）。
+    exec_price: str = "close"
     # V4.1 分钟重排层（docs/v4-best-plan.md §7）：daily_top > 0 时启用——日线
     # 上涨共振先选 Top(daily_top)，再按 5min K线纯分钟上涨共振重排
     # （0% 日线 + 100% 分钟）；topk 缓冲作用于最终排名。minute_bars 为窗内
@@ -377,6 +382,7 @@ class V3Backtester:
         entry_gate: pd.Series | None = None,
         exit_grid: pd.DataFrame | None = None,
         post_rank=None,
+        open_all: pd.DataFrame | None = None,
     ):
         self.close = close_all
         self.rets = close_all.pct_change()
@@ -392,6 +398,12 @@ class V3Backtester:
             )
         self.allA = allA_code
         self.p = params or V3Params()
+        # V4.4 开盘成交口径：需要开盘价宽表（与 close_all 同构：行=交易日索引，
+        # 列须含全部持仓候选 + 锚池 + 全A）。仅支持 exec_lag=1。
+        if self.p.exec_price == "open":
+            assert open_all is not None, 'exec_price="open" 需要 open_all 开盘价宽表'
+            assert self.p.exec_lag == 1, 'exec_price="open" 仅支持 exec_lag=1（信号 T 收盘 → T+1 开盘）'
+        self.open_wide = open_all
         self.mbp = minute_bars_provider
         if self.p.daily_top > 0:
             assert self.mbp is not None, "daily_top>0（V4.1 分钟重排）需要 minute_bars_provider"
@@ -476,36 +488,77 @@ class V3Backtester:
         }
         close_cols = {c: j for j, c in enumerate(self.close.columns)}
         close_np = self.close.to_numpy(dtype=float)
+        open_np = (self.open_wide.to_numpy(dtype=float)
+                   if self.open_wide is not None else None)
+        open_cols = ({c: j for j, c in enumerate(self.open_wide.columns)}
+                     if self.open_wide is not None else {})
 
         def close_at(i: int, code: str) -> float:
             v = close_np[i, close_cols[code]]
             return float(v) if pd.notna(v) else float("nan")
 
+        def open_at(i: int, code: str) -> float:
+            if code not in open_cols:
+                return float("nan")
+            v = open_np[i, open_cols[code]]
+            return float(v) if pd.notna(v) else float("nan")
+
         def exec_pending(i, date) -> None:
-            """在 i 日收盘执行 pending（含双边成本与状态迁移）。"""
+            """在 i 日执行 pending（含双边成本与状态迁移）。
+
+            exec_price='close'：i 日收盘成交（T+1 收盘语义）；
+            exec_price='open'（V4.4）：i 日开盘成交——卖出/换仓的旧仓先计入
+            隔夜段 open(i)/close(i−1)，再计成本；新仓自当日起 open→close 计收益。
+            止损判定基准 entry_px 在两种口径下均取**入场日收盘价**（spec/v44 §一）。
+            """
             nonlocal nav, holding, entry_px, exec_i, pending, entry_block_until
             act = pending
             pending = None
+            use_open = p.exec_price == "open"
+
+            def fill_at(code: str) -> float:
+                return open_at(i, code) if use_open else close_at(i, code)
+
+            def overnight(code: str) -> None:
+                """旧仓隔夜段 close(i−1)→open(i)（仅开盘口径的卖出/换仓）。"""
+                nonlocal nav
+                if use_open:
+                    o, c_prev = open_at(i, code), close_at(i - 1, code)
+                    if math.isfinite(o) and math.isfinite(c_prev) and c_prev > 0:
+                        nav *= o / c_prev
+
+            def entry_stop_base(code: str, fill_px: float) -> float:
+                """止损判定基准 = 入场日收盘价（开盘口径下成交价是开盘价，
+                判定基准仍用收盘；当日收盘缺失时退化为成交价）。"""
+                c_i = close_at(i, code)
+                return c_i if math.isfinite(c_i) else fill_px
+
             if act["type"] == "buy":
-                px = close_at(i, act["code"])
+                px = fill_at(act["code"])
                 if math.isfinite(px):
                     nav *= 1.0 - cost
                     trades.append({"date": date, "type": "entry",
                                    "from": None, "to": act["code"],
                                    "price": px, "nav": nav})
                     st["entries"] += 1
-                    holding, entry_px, exec_i = act["code"], px, i
+                    holding = act["code"]
+                    entry_px = entry_stop_base(act["code"], px)
+                    exec_i = i
             elif act["type"] == "switch":
-                px_new = close_at(i, act["to"])
+                px_new = fill_at(act["to"])
                 if math.isfinite(px_new):
+                    overnight(act["from"])  # 仅在换仓确实发生时计入隔夜段
                     nav *= (1.0 - cost) ** 2
                     trades.append({"date": date, "type": "switch",
                                    "from": act["from"], "to": act["to"],
                                    "price": px_new, "nav": nav})
                     st["switches"] += 1
-                    holding, entry_px, exec_i = act["to"], px_new, i
+                    holding = act["to"]
+                    entry_px = entry_stop_base(act["to"], px_new)
+                    exec_i = i
             elif act["type"] == "sell":
-                px = close_at(i, act["from"])
+                overnight(act["from"])
+                px = fill_at(act["from"])
                 nav *= 1.0 - cost
                 if act["reason"] == "stop":
                     st["stop_count"] += 1
@@ -533,18 +586,31 @@ class V3Backtester:
 
         for i in range(s, e):
             date = cal[i]
-            # --- 1) 当日计收益（T+2 起算）---
             stopped_today = False
-            if holding is not None and exec_i is not None and i > exec_i:
-                c_prev = close_at(i - 1, holding)
-                c_i = close_at(i, holding)
-                if math.isfinite(c_i) and math.isfinite(c_prev) and c_prev > 0:
-                    nav *= c_i / c_prev
-                    st["held_days"] += 1
+            if p.exec_price == "open":
+                # --- 1o) 开盘执行滞后信号（V4.4：T 收盘信号 → T+1 开盘成交）---
+                if p.exec_lag == 1 and pending is not None:
+                    exec_pending(i, date)
+                # --- 2o) 当日收盘估值（执行日 open→close，其余日 close→close）---
+                if holding is not None and exec_i is not None and i >= exec_i:
+                    base = (open_at(i, holding) if i == exec_i
+                            else close_at(i - 1, holding))
+                    c_i = close_at(i, holding)
+                    if math.isfinite(c_i) and math.isfinite(base) and base > 0:
+                        nav *= c_i / base
+                        st["held_days"] += 1
+            else:
+                # --- 1) 当日计收益（T+2 起算）---
+                if holding is not None and exec_i is not None and i > exec_i:
+                    c_prev = close_at(i - 1, holding)
+                    c_i = close_at(i, holding)
+                    if math.isfinite(c_i) and math.isfinite(c_prev) and c_prev > 0:
+                        nav *= c_i / c_prev
+                        st["held_days"] += 1
 
-            # --- 2) 执行滞后信号（exec_lag=1：T+1 收盘成交）---
-            if p.exec_lag == 1 and pending is not None and not stopped_today:
-                exec_pending(i, date)
+                # --- 2) 执行滞后信号（exec_lag=1：T+1 收盘成交）---
+                if p.exec_lag == 1 and pending is not None and not stopped_today:
+                    exec_pending(i, date)
 
             # --- 3) 今日收盘信号 ---
             if not stopped_today:
