@@ -156,8 +156,14 @@ class ParquetFeatureProvider(FeatureProvider):
 
     def feature(self, instrument, field, start_index, end_index, freq):
         arr = self._arr(instrument, str(field)[1:], freq)
-        return pd.Series(arr[start_index: end_index + 1],
-                         index=np.arange(start_index, end_index + 1))
+        # 契约⑩（右边界钳制）：负向 Ref 的扩展窗会把 end_index 推到日历
+        # 末端之外（标签表达式），numpy 切片截短后必须同步截短索引，否则
+        # 数据/索引长度不齐直接 ValueError（真数据管道实际踩过）
+        lo = max(int(start_index), 0)
+        hi = min(int(end_index), len(arr) - 1)
+        if hi < lo:
+            return pd.Series(dtype=float)
+        return pd.Series(arr[lo: hi + 1], index=np.arange(lo, hi + 1))
 
 
 # ------------------------------------------------------------------- init ----
