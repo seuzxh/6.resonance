@@ -15,7 +15,21 @@
 
 ## 在册实验
 
-- `qlib_smoke.py`：qlib 验证 P0 冒烟（parquet 直驱 pyqlib 回测，无 bin、
-  无 qlib.init；conda env `qlib`）。方案见
+qlib 验证与扩展轨（路线 A）的代码文件集中在子目录
+[qlib_route_a/](qlib_route_a/)（含 README 与目录命名说明——禁止命名为
+`qlib/`，会遮蔽 pyqlib 包）：
+
+- `qlib_route_a/qlib_smoke.py`：qlib 验证 P0 冒烟（parquet 直接驱动
+  pyqlib 回测，无 bin、无 qlib.init；conda env `qlib`）。方案见
   [qlib-validation-plan](../docs/research/qlib-validation-plan.md)，
   实施按 P1→P5 推进，全部完成后本实验脚本随收口清理。
+- `qlib_route_a/qlib_ml_smoke.py`：扩展轨 A0 链冒烟（因子 DataFrame →
+  from_df → DatasetH → LGBModel，2026-09-27 通过；conda env `qlib`）。
+  路线 A 选定后降为备选证据。
+- `qlib_route_a/qlib_provider_smoke.py`：**选定路线 A** 的数据层注入
+  冒烟（ParquetProvider 三接口 + qlib.init + 表达式引擎，day/5min 双频
+  逐项核对，2026-09-28 通过 exit=0；conda env `qlib`）。
+- 待建（实施计划 T1–T6）：`qlib_route_a/qlib_provider.py`、
+  `qlib_factor_export.py`、`qlib_pipeline.py`、`qlib_f8_compare.py`——
+  见
+  [实施计划](../docs/superpowers/plans/2026-09-29-qlib-routeA-5min-factors.md)。

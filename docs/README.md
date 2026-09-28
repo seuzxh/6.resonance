@@ -11,6 +11,9 @@
 
 - [v43-best-plan.md](spec/v43-best-plan.md) — V4.3 三锚动选现行口径：
   冻结参数（§三）、组件来源表、领先分布与 2022-24 时间外推警示。
+- [v44-open-exec-plan.md](spec/v44-open-exec-plan.md) — V4.4 成交时点
+  切换 T+1 开盘（2026-09-29 用户裁决立项，规划中）：语义定义、引擎
+  改动设计、锚点重算清单、OOS 四轨处置待决项。
 
 ## ops/ 每日运行（推理过程）
 
@@ -25,7 +28,8 @@
 - [experiment-playbook.md](research/experiment-playbook.md) — 方法论手册：
   预注册协议、七条定律、负结论登记表（新实验必读 §五检查清单）。
 - [qlib-validation-plan.md](research/qlib-validation-plan.md) — qlib 独立引擎
-  复算验证（parquet 直驱、免 bin；预注册设计，P0 冒烟已过，待过 §八决策项）。
+  复算验证（parquet 直接驱动、无需转 bin；预注册设计，P0 冒烟已过，
+  待过 §九决策项；附 §十 5min 因子+训练扩展轨草案）。
 - [moneyflow-gate-plan.md](research/moneyflow-gate-plan.md) — 资金流闸门探索
   （预注册 → 四轮实验 → 全线收官存档）。
 - [minute-resonance-design.md](research/minute-resonance-design.md) — 分钟层

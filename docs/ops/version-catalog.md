@@ -6,6 +6,7 @@
 
 | tag | 口径要点 | 结论位置 | 归档日期 |
 |---|---|---|---|
+| `v4.4.0-open-exec`（**规划中**，2026-09-29 立项） | V4.4：成交时点全栈切换 T+1 开盘价（用户裁决；四来源考证旧口径为收盘成交）。引擎 `exec_price` 参数 + 锚点重算 + OOS 处置待决 | [docs/spec/v44-open-exec-plan.md](../spec/v44-open-exec-plan.md) | 规划中 |
 | `v4.3.0-trio-anchor`（已存在） | V4.3 三锚动选生产口径：完整周期 +165.4%/−16.2%/夏普 1.98；分钟子窗 +87.6%/−13.0%/2.07；参数 = V4.2 全量继承 + 锚池替换。**现行生产（D3 主轨）** | [docs/spec/v43-best-plan.md](../spec/v43-best-plan.md) | 2026-09-23 |
 | `v3.0.0-up-resonance-frozen` | V3 规格独立复现入口（`ops/backtest_v3.py`）冻结。V3 终栈 = V3 规格 + 防御 strong4%：+74.4%/−13.2%/夏普 1.30@10bp。**V3 参数快照**（原 `outputs/v3/production.json`，随目录删除抄录）：`{"defense_dd": 0.04, "defense_strong": true}` | v3-best-plan.md 已随 2026-09-23 清理删除（git ≤0790071 可溯）；引擎本体 `resonance/v3.py` 在役（V4.3 生产） | 2026-09-27 |
 | `legacy-stack-frozen` | GPT 骨架与分钟共振旧口径冻结：`resonance/metrics.py`、`resonance/backtest.py::RotationBacktester`（GPT 会话迁移骨架）+ `resonance/minute.py`（分钟共振 v1–v4，被 V4.1 分钟重排取代） | [gpt-session-summary.md](../research/gpt-session-summary.md)、[minute-resonance-design.md](../research/minute-resonance-design.md) | 2026-09-27 |
