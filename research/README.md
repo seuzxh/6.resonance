@@ -29,6 +29,9 @@ qlib 验证与扩展轨（路线 A）的代码文件集中在子目录
 - `qlib_route_a/qlib_provider_smoke.py`：**选定路线 A** 的数据层注入
   冒烟（ParquetProvider 三接口 + qlib.init + 表达式引擎，day/5min 双频
   逐项核对，2026-09-28 通过 exit=0；conda env `qlib`）。
+- `qlib_explore_am_ovnt.py`：探索性诊断（未预注册）——上午盘/隔夜/
+  隔日因子族 IC（2026-09-29 用户指令；结论：上午与隔夜信息域基本无效，
+  PMAM_ROT 呈慢因子形态未过线；随收口清理）。
 - 验证轨（同日完成）：`qlib_harness.py`（P1 回测适配层）、
   `qlib_bridge_export.py`（P2 信号桥+重放引擎，G2 45/45）、
   `qlib_equivalence.py`（P3 ResonanceStrategy，E-Gate 45/45 逐笔一致）。
