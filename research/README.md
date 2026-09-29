@@ -32,6 +32,10 @@ qlib 验证与扩展轨（路线 A）的代码文件集中在子目录
 - `qlib_explore_am_ovnt.py`：探索性诊断（未预注册）——上午盘/隔夜/
   隔日因子族 IC（2026-09-29 用户指令；结论：上午与隔夜信息域基本无效，
   PMAM_ROT 呈慢因子形态未过线；随收口清理）。
+- `alpha158_verify_prep.py` + `alpha158_verify.py`：A158-V1 预注册
+  验证（docs/research/alpha158-verify-plan.md）——B 三因子 LGBM 判
+  HARMFUL（二连败）、C BETA20 单因子判 NEUTRAL（与 F8 信息等价）；
+  随收口清理。
 - `qlib_explore_alpha158.py`：探索性挖掘（未预注册）——Alpha158
   全库 157 因子 × 5min 的 IC 扫描（2026-09-29 用户指令；正侧 BETA20
   test +0.159 与 TAIL_MOM24 互证、负侧 CNTP/WVMA 微观反转过 Bonferroni；

@@ -1,0 +1,14 @@
+artifact_uri: file:///home/zxh/projects/6.resonance/mlruns/533657731579658701/b835e1ac4d26486ba4e4439608d06670/artifacts
+end_time: 1790656934483
+entry_point_name: ''
+experiment_id: '533657731579658701'
+lifecycle_stage: active
+run_id: b835e1ac4d26486ba4e4439608d06670
+run_name: mlflow_recorder
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1790656934443
+status: 3
+tags: []
+user_id: zxh
