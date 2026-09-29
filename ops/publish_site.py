@@ -83,7 +83,11 @@ def _trades(track: str) -> pd.DataFrame:
     f = OUT / f"trades_{track}.csv"
     if not f.exists():
         return pd.DataFrame(columns=["date", "type", "from", "to", "price"])
-    t = pd.read_csv(f, dtype={"from": str, "to": str}).fillna("")
+    # 评价期重启首日 trades 为 1 字节空表（空 DataFrame 落盘仅一个换行符）
+    try:
+        t = pd.read_csv(f, dtype={"from": str, "to": str}).fillna("")
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame(columns=["date", "type", "from", "to", "price"])
     t["date"] = pd.to_datetime(t["date"])
     return t
 
@@ -172,12 +176,12 @@ def replay_display(track: str, end_date: str) -> dict:
         return _REPLAY_CACHE[(track, end_date)]
     from resonance.v3 import MinuteBarProvider, V3Backtester
     from ops import signal_daily as sd
-    close_all, concepts = sd.load_wide()
+    close_all, open_all, concepts = sd.load_wide()
     m5 = pd.read_parquet(config.CACHE_DIR / "minute5_bars.parquet")
     m5["datetime"] = pd.to_datetime(m5["datetime"])
     prov = MinuteBarProvider(m5.pivot(index="datetime", columns="symbol", values="close").sort_index())
     bt = V3Backtester(close_all, concepts, broad_codes=sd.TRACKS[track],
-                      params=sd.FROZEN, minute_bars_provider=prov)
+                      params=sd.FROZEN, minute_bars_provider=prov, open_all=open_all)
     out = bt.run(NAV_START, end_date)
     _REPLAY_CACHE[(track, end_date)] = out
     return out
