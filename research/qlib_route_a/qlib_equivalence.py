@@ -165,7 +165,10 @@ def main() -> int:
     quote = build_quote(bars[bars["symbol"].isin(codes)])
     trade_days = pd.DatetimeIndex(sorted(quote.index.get_level_values(0).unique()))
 
-    report = ["# E-Gate 报告：ResonanceStrategy(qlib) ≡ 参考引擎（②段）", "",
+    report = [
+        "窗口代码：FULL=完整周期窗（2025-01-02 相位族→2026-09-18）、"
+        "MWIN=分钟子窗（2025-09-22 相位族→2026-09-18）、EXT=延伸窗（FULL 起→2026-09-24）。", "",
+"# E-Gate 报告：ResonanceStrategy(qlib) ≡ 参考引擎（②段）", "",
               "对拍锚：逐笔成交（日期/类型/标的/价格 float32 相等）；账户终值"
               "列参考（换仓金额含 1e-9 估算边际）。", ""]
     n_pass = n_all = 0

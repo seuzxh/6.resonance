@@ -199,7 +199,10 @@ def _trades_key(df: pd.DataFrame):
 def run_matrix(close32, open32, concepts, prov, bridge) -> int:
     out_dir = config.OUTPUTS_DIR / "qlib_bridge" / "ref_runs"
     out_dir.mkdir(parents=True, exist_ok=True)
-    report = ["# G2 报告：ReplayBacktester ≡ V3Backtester（①段等价门）", "",
+    report = [
+        "窗口代码：FULL=完整周期窗（2025-01-02 相位族→2026-09-18）、"
+        "MWIN=分钟子窗（2025-09-22 相位族→2026-09-18）、EXT=延伸窗（FULL 起→2026-09-24）。", "",
+"# G2 报告：ReplayBacktester ≡ V3Backtester（①段等价门）", "",
               "口径：float32 矩阵、V4.4 开盘成交、逐笔交易 100% 一致 + nav 终值"
               "相对差 ≤1e-9。", ""]
     n_pass = n_all = 0
