@@ -94,6 +94,7 @@
 
 - **X3 学习化模型替换分钟重排（2026-09-29，qlib 路线 A）**：LGBModel（8 个 5min 因子 + F1–F7 静态混入，时间切分）预测分替换 F8 重排，test 段 5 相位中位 **−12.30pp、0/5 相位，判 HARMFUL**；模型分 Rank IC −0.037（t=−1.29）与单因子 TAIL_MOM24 +0.156（t=2.41）并存——弱信号被合并稀释。重开条件：换特征集/换目标/加 walk-forward（L5 交互），须新预注册。证据：outputs/qlib_ml/{report.md §五, x3_phases.csv}。
 - **A158-V1 三因子学习化重排二连败 + BETA20 与 F8 信息等价（2026-09-29，预注册 alpha158-verify-plan.md）**：{BETA20, RSQR20, CNTP30} 的 LGBM 重排对 F8 基线中位 **−11.10pp、1/5 相位判 HARMFUL**（继 X3 后第二证：学习化组合稀释此域信号）；BETA20 单因子重排 **+0.28pp、2/5 判 NEUTRAL**——与 F8 分钟共振信息等价。重开条件收窄为：换目标函数/加 walk-forward。证据：outputs/qlib_ml/a158_report.md。
+- **rank 因子族全灭（2026-09-29，预注册 rank-factors-plan.md）**：截面位次/时序分位/位次迁移 13 条（动量·波动·流动性·共振 score 的 rank 形态），**0/9 过线**（Bonferroni |t|≥2.89；最高 DR_MOM5 全窗 +0.044/t=2.30、test +0.093/t=1.78、L1→L5 平缓——记次阈观察，不作候选）；TSR_C20/C60 test 段翻负（regime 特异）；不变性双校验通过（XR_MOM10≡原始 MOM10 ±0.0000、BR_RANK≡−score）。前提结论：Alpha158 已有 20 条价格分位族（RANK/RSV/QTL，|t|≤2.17）+ 本轮补测——**rank 变换在本 universe 不产新增量**；score 本身全窗 IC t=+2.29 亦未过 3.5 严线（策略盈利来自闸门+Top 选择而非全截面 IC）。重开条件：换 universe（个股层）或与 TAIL_MOM24 的交互项。证据：outputs/qlib_ml/{exploratory_rank.md, rank_ic.csv}。
 ## 四、数据边界备忘
 
 > 配图：[数据流图](../diagrams/data-pipeline-dataflow.html)——双链路采集、
