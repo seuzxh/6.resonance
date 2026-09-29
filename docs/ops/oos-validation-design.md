@@ -84,3 +84,13 @@ V3Params(topk=3, daily_top=5, hl_source="leader",
 - `outputs/oos/signals_{A9,B13}.csv`：逐日信号与执行指令；
   `outputs/oos/nav_{A9,B13}.csv`：双轨纸面净值；`outputs/oos/audit.md`：
   数据完整性与降级月报。
+
+
+## 修正案：V4.4 开盘成交切换与评价期重启（2026-09-29 用户裁决选项 B）
+
+四轨（D3/A9/B13/C1，另 G2/K5 净值对照轨）自 2026-09-29 起切换 **T+1
+开盘成交口径**（docs/spec/v44-open-exec-plan.md）：OOS 起点由 2026-09-22
+重置为 2026-09-29（空仓起步），预注册判据（≥60 信号日）重新计数；
+2026-09-22~09-28 收盘口径纸面产物归档于 outputs/oos_archive_close/
+（13 文件）。冻结参数其余各项不变；两口径不可混算，裁决对比只在新
+评价期内进行。

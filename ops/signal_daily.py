@@ -1,5 +1,10 @@
 """样本外验证每日 runner（docs/ops/oos-validation-design.md，2026-09-22 启动）。
 
+**V4.4 切换（2026-09-29 用户裁决选项 B）**：四轨即日切换 T+1 开盘成交
+口径（spec/v44-open-exec-plan.md §四），评价期重启——OOS 起点由
+2026-09-22 重置为 2026-09-29（空仓起步），预注册判据（≥60 信号日）从新
+起点重新计数；旧收盘口径纸面产物归档于 outputs/oos_archive_close/。
+
 用法（每日收盘后）：
     conda run -n resonance python ops/signal_daily.py            # 双轨（9池+13池）
     conda run -n resonance python ops/signal_daily.py --date 2026-09-23
@@ -11,8 +16,8 @@
    （下午盘省配额口径；微盘股无 HF 覆盖跳过）；
 3. 无状态重放：V3Backtester 自 OOS 起点（2026-09-22，空仓起步）重放至
    --date，冻结参数（设计文档 §二）；
-4. 落盘：outputs/oos/signals_{track}.csv（逐日动作与指令）、nav_{track}.csv、
-   控制台输出当日指令（T 信号 → T+1 收盘执行）。
+4. 落盘：outputs/oos/trades_{track}.csv（逐日动作与指令）、nav_{track}.csv、
+   控制台输出当日指令（T 信号 → T+1 开盘执行，V4.4 口径）。
 
 幂等：重跑同一天结果逐位一致（无状态重放）；分钟补齐有 nocover 名单防重试。
 """
@@ -31,7 +36,7 @@ from resonance import config  # noqa: E402
 from resonance.ifind import fetch_history_data, fetch_minute_bars  # noqa: E402
 from resonance.v3 import MinuteBarProvider, V3Params, V3Backtester, V3Signals  # noqa: E402
 
-OOS_START = "2026-09-22"
+OOS_START = "2026-09-29"  # V4.4 评价期重启起点（2026-09-29 用户裁决 B；旧值 2026-09-22 归档）
 OUT_DIR = config.OUTPUTS_DIR / "oos"
 POOL13 = ["883957.TI", "700050.TI", "000680.SH", "399006.SZ", "000688.SH", "000016.SH",
           "899050.BJ", "932000.CSI", "000300.SH", "000905.SH", "000852.SH", "399303.SZ",
@@ -46,8 +51,10 @@ TRACKS = {"D3": list(config.V43_ANCHOR_POOL),
 # 两码已退役（config.RETIRED_NO_HF_CODES，用户指令禁用于新实验）；B13 为
 # 预注册冻结轨不改池名单，其领先日按预注册降级回退日线排序。
 NO_HF_COVER = {"700050.TI", "932000.CSI"}
-# 冻结参数（oos-validation-design §二；改任何一项实验作废）
-FROZEN = V3Params(topk=3, daily_top=5, hl_source="leader", cost_bp=10.0)
+# 冻结参数（oos-validation-design §二；改任何一项实验作废）。
+# 2026-09-29 随 V4.4 选项 B 重冻结：成交时点收盘→开盘（评价期同步重启）
+FROZEN = V3Params(topk=3, daily_top=5, hl_source="leader", cost_bp=10.0,
+                  exec_price="open")
 
 
 # ---------------------------------------------------------------- 数据 -- 
@@ -162,11 +169,14 @@ def load_wide():
     concepts = [c for c in catalog["code"] if c in set(bars["symbol"])]
     close_all = bars.pivot(index="date", columns="symbol", values="close").sort_index()
     close_all.index = pd.to_datetime(close_all.index)
-    return close_all, concepts
+    # V4.4：开盘价宽表（引擎开盘成交用；与 close_all 同构）
+    open_all = bars.pivot(index="date", columns="symbol", values="open").sort_index()
+    open_all.index = pd.to_datetime(open_all.index)
+    return close_all, open_all, concepts
 
 
 def replay_track(track: str, pool: list[str], end_date: str) -> dict:
-    close_all, concepts = load_wide()
+    close_all, open_all, concepts = load_wide()
     m5 = pd.read_parquet(config.CACHE_DIR / "minute5_bars.parquet")
     m5["datetime"] = pd.to_datetime(m5["datetime"])
     prov = MinuteBarProvider(m5.pivot(index="datetime", columns="symbol", values="close").sort_index())
@@ -176,7 +186,7 @@ def replay_track(track: str, pool: list[str], end_date: str) -> dict:
     prov = MinuteBarProvider(m5.pivot(index="datetime", columns="symbol", values="close").sort_index())
 
     bt = V3Backtester(close_all, concepts, broad_codes=pool, params=FROZEN,
-                      minute_bars_provider=prov)
+                      minute_bars_provider=prov, open_all=open_all)
     out = bt.run(OOS_START, end_date)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     trades = out["trades"]
@@ -194,7 +204,7 @@ def main() -> int:
     ap.add_argument("--date", default=str(pd.Timestamp.now().date()))
     ap.add_argument("--track", choices=list(TRACKS), default=None)
     ap.add_argument("--oos-start", default=None,
-                    help="OOS 起点覆盖（仅限机制测试/起点顺延；正式实验用默认 2026-09-22）")
+                    help="OOS 起点覆盖（仅限机制测试/起点顺延；正式实验用默认 2026-09-29 = V4.4 重启起点）")
     args = ap.parse_args()
 
     global OOS_START
