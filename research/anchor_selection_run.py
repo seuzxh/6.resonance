@@ -131,11 +131,58 @@ def normalize_counts(results):
     return results.fillna({c: 0 for c in columns})
 
 
+def daily_diagnostic(close, open_, concepts, outdir):
+    """主矩阵后按补充预注册执行固定日线对照，不进行新参数搜索。"""
+    params = V3Params(topk=3, daily_top=0, hl_source="leader", cost_bp=10, exec_price="open")
+    engines = {code: V3Backtester(close, concepts, [code], params=params, open_all=open_)
+               for code in ANCHORS}
+    bank = RankingBank(engines)
+    dual = V3Backtester(close, concepts, BASE_POOLS["dual"], params=params, open_all=open_)
+    fixed = pool_schedule(dual)
+    original = dual.run("2022-06-01", END)
+    replay = bank.run(fixed, "2022-06-01", END, 10)
+    pd.testing.assert_series_equal(original["nav_curve"], replay["nav_curve"])
+    pd.testing.assert_frame_equal(original["trades"], replay["trades"])
+    rows = []
+    for phase, warm_start in enumerate(close.index[close.index >= "2022-01-04"][:5]):
+        nav, active = {}, {}
+        for code in ANCHORS:
+            result = bank.run(pd.Series(code, index=close.index), warm_start, END, 10)
+            assert_executable(result, close, open_)
+            nav[code] = result["nav_curve"].reindex(close.index)
+            active[code] = result["holdings"].holding.notna().reindex(close.index, fill_value=False)
+        nav, active = pd.DataFrame(nav), pd.DataFrame(active)
+        scores = quality_scores(nav, active, 60)
+        for window, (begin, end) in WINDOWS.items():
+            start = close.index[close.index >= begin][phase]
+            variants = {"dual": fixed}
+            for penalty in [0.0, 0.1]:
+                variants[f"quality60_p{penalty:g}"] = select_schedule(
+                    nav, active, start, penalty=penalty, scores=scores)["anchor"]
+            for tag, schedule in variants.items():
+                result = bank.run(schedule, start, end, 10)
+                assert_executable(result, close, open_)
+                stats = perf_stats(result["nav_curve"])
+                rows.append({"window": window, "cost": 10, "phase": phase + 1,
+                             "variant": tag, "total": stats["total_return"],
+                             "dd": stats["max_drawdown"], "sharpe": stats["sharpe"],
+                             **occupancy_stats(schedule.loc[start:end])})
+    results = pd.DataFrame(rows)
+    results.to_csv(outdir / "daily_diagnostic.csv", index=False)
+    pairs = [paired_summary(results, window, 10, candidate, baseline)
+             for window in WINDOWS for candidate, baseline in
+             [("quality60_p0", "dual"), ("quality60_p0.1", "quality60_p0")]]
+    pd.DataFrame(pairs).to_csv(outdir / "daily_diagnostic_paired.csv", index=False)
+    print(results.groupby(["window", "variant"])[["total", "dd"]].median().to_string())
+    print(pd.DataFrame(pairs).to_string(index=False))
+
+
 def plot_results(outdir, curves, selections):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib import font_manager
+    from matplotlib.ticker import FuncFormatter
     for font in font_manager.fontManager.ttflist:
         if "CJK" in font.name or "WenQuanYi" in font.name:
             plt.rcParams["font.family"] = font.name
@@ -153,6 +200,8 @@ def plot_results(outdir, curves, selections):
             axes[1].plot(nav.index, 100 * (nav / nav.cummax() - 1), color=colors[tag],
                          label=LABELS[tag], linewidth=1)
     axes[0].set_yscale("log")
+    axes[0].yaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
+    axes[0].yaxis.set_minor_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
     axes[0].set_ylabel("净值（对数坐标）")
     axes[1].set_ylabel("回撤（%）")
     selection = selections["quality60_p0.1"]["anchor"]
@@ -160,7 +209,7 @@ def plot_results(outdir, curves, selections):
     for code, color in zip(ANCHORS, palette):
         occupation = selection.eq(code).rolling(60, min_periods=1).sum() / 60
         axes[2].plot(selection.index, occupation, label=NAMES[code], color=color)
-    axes[2].set_ylabel("过去60日锚占用率")
+    axes[2].set_ylabel("惩罚方案\n60日锚占用率")
     for ax in axes:
         ax.grid(alpha=0.18)
     axes[0].legend(ncol=3, fontsize=9)
@@ -174,14 +223,37 @@ def plot_results(outdir, curves, selections):
     plt.close(fig)
 
 
+def write_convergence(outdir):
+    """逐笔核对主窗口最后一次相位分歧，避免完整摘要掩盖后续收敛。"""
+    summary = []
+    for tag in LABELS:
+        sequences = []
+        for phase in range(1, 6):
+            trades = pd.read_csv(outdir / f"trades_main_{tag}_phase{phase}.csv",
+                                 parse_dates=["date"]).fillna("")
+            sequences.append({row["date"]: tuple(row[k] for k in ["type", "from", "to", "price"])
+                              for row in trades.to_dict("records")})
+        dates = sorted(set().union(*(set(s) for s in sequences)))
+        different = [date for date in dates if len({s.get(date) for s in sequences}) > 1]
+        last = max(different) if different else None
+        summary.append({"variant": tag,
+                        "last_trade_disagreement": str(last.date()) if last is not None else None,
+                        "common_later_trade_dates": sum(last is None or date > last for date in dates)})
+    pd.DataFrame(summary).to_csv(outdir / "phase_convergence.csv", index=False)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, default=Path("/home/zxh/projects/6.resonance/data"))
     parser.add_argument("--out", type=Path, default=Path("outputs/anchor_selection"))
+    parser.add_argument("--daily-diagnostic", action="store_true")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
     close, open_, concepts, provider, audit = load_data(args.data_root)
+    if args.daily_diagnostic:
+        daily_diagnostic(close, open_, concepts, args.out)
+        return
     (args.out / "data_audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2))
     params = V3Params(topk=3, daily_top=5, hl_source="leader", cost_bp=10, exec_price="open")
     engines = {code: V3Backtester(close, concepts, [code], params=params,
@@ -292,6 +364,7 @@ def main():
     assert all(audit["input_unchanged"].values())
     (args.out / "data_audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2))
     plot_results(args.out, plot_curves, plot_selections)
+    write_convergence(args.out)
     print(pd.DataFrame(pairs).to_string(index=False), flush=True)
     print(f"complete: {args.out.resolve()}", flush=True)
 
