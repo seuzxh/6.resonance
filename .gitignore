@@ -46,3 +46,4 @@ site/.vitepress/docs-manifest.json
 # Frozen research model artifacts (regenerated, local only)
 outputs/qlib_label_recheck/model_*.txt
 outputs/qlib_decision_learning/models/*.txt
+outputs/qlib_candidate_rerank/models/*.txt
