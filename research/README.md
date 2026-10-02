@@ -15,6 +15,13 @@
 
 ## 在册实验
 
+2026-10-03新增：`qlib_label_recheck_*.py`（标签纠错受控复验，结论已记录）
+和 `qlib_decision_learning_*.py`（滚动入场质量学习，实施中），分别对应
+[纠错复验](../docs/research/qlib-label-recheck.md)与
+[决策质量学习](../docs/research/qlib-decision-learning.md)。新实验只读截至
+2026-09-18的行情，生产与现行样本外评价冻结。旧学习结论的标签方向错误
+及其影响范围以上述两份文档为准；新轮收口后清理实施脚本。
+
 qlib 验证与扩展轨（路线 A）的代码文件集中在子目录
 [qlib_route_a/](qlib_route_a/)（含 README 与目录命名说明——禁止命名为
 `qlib/`，会遮蔽 pyqlib 包）：

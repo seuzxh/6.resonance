@@ -42,3 +42,7 @@ site/.vitepress/docs-manifest.json
 # 会话工具产物（codegraph 索引 / zcode 计划文件）
 .codegraph/
 .zcode/
+
+# Frozen research model artifacts (regenerated, local only)
+outputs/qlib_label_recheck/model_*.txt
+outputs/qlib_decision_learning/models/*.txt
