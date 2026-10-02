@@ -25,6 +25,9 @@
 
 ## research/ 寻优研究（历史过程——写侧）
 
+- [anchor-selection.md](research/anchor-selection.md) — 单锚概念策略表现选锚与
+  软占用惩罚实验（2026-10-03）：预注册主矩阵和纯日线诊断均完成，两项主规则
+  不采纳；含相位收敛、分钟陈旧窗口审计及图表入口。
 - [experiment-playbook.md](research/experiment-playbook.md) — 方法论手册：
   预注册协议、七条定律、负结论登记表（新实验必读 §五检查清单）。
 - [qlib-validation-plan.md](research/qlib-validation-plan.md) — qlib 独立引擎

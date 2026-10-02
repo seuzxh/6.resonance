@@ -10,6 +10,8 @@
 - `exp_hist_2022/`：2022-2024 历史扩展验证数据表（时间外推 + 数据体检 +
   防御层熊市补测）。
 - `exp_moneyflow/`：资金流四轮实验数据表。
+- `anchor_selection/`：动态选锚预注册矩阵、纯日线诊断、相位收敛核验与净值图；
+  两项主规则不采纳，结论见 [实验记录](../docs/research/anchor-selection.md)。
 - `minute_resonance/`：分钟共振设计验证（report.md 在库）。
 - `index_backtest_framework/`：回测框架复算（report.md 在库）。
 - `oos/`：样本外验证逐日信号 / 净值 / 审计（四轨，运行中）。
