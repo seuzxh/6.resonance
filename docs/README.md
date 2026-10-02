@@ -32,6 +32,8 @@
   待过 §九决策项；附 §十 5min 因子+训练扩展轨草案）。
 - [moneyflow-gate-plan.md](research/moneyflow-gate-plan.md) — 资金流闸门探索
   （预注册 → 四轮实验 → 全线收官存档）。
+- [anchor830-plan.md](research/anchor830-plan.md) — 830000 平均股价锚验证
+  （预注册 → 执行 → HARMFUL 收口：等权宽基锚方向关闭，2026-10-02）。
 - [minute-resonance-design.md](research/minute-resonance-design.md) — 分钟层
   设计演化存档（dyn5→v4；现行口径已由 V4.1+ 取代，其成本工程章节仍为
   5min 采集需求矩阵的依据）。
