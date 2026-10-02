@@ -53,3 +53,31 @@
 集中度汇总先截取各评价窗口，再计算60日滚动占用或贡献；窗口开始不足
 60日时按空缺补齐分母60。这只影响汇总边界，硬上限规则实际选择所用的
 历史仍从完整日历连续预热，没有随评价窗口或相位重置。
+
+## 固定池复验与派生审计
+
+`pool_interaction/`（固定池交互复验）保留同名格式的第二轮975次结果，
+其中855次为主形态、120次为纯日线。方案前缀 `dual_`（双锚池）与
+`trio_`（三锚池）限定候选池，其余含义不变。与首轮重复的对照不是独立证据。
+
+`verdicts.csv`（冻结判据核验）覆盖28个非对照配置，`center`（是否预定
+中心）、`return_pass`（收益改善达标）、`phase_pass`（胜出相位达标）、
+`drawdown_pass`（回撤限制达标）、`early_pass`（早期不反效）、
+`recent_pass`（近期不反效）、`cost_pass`（成本压力同向）、
+`performance_pass`（全部绩效判据通过）、`neighbor_pass`（预定邻域通过）、
+`occupancy_improvement_pass`（相对原池占用改善达标）、
+`eligible_for_next_validation`（是否满足进入后续验证要求）均按预注册计算。
+`main_delta`（主窗配对收益差）、`main_wins`（主窗胜出相位数）、
+`main_dd_delta`（主窗配对回撤差）是对应数值。
+
+`selection_effect_phase3.csv`（第3相位选锚变化解释）是事后账单核对，
+不用于重新选择参数。`different_selection_days`（相对原双锚选锚不同天数）、
+`both_gate_closed`（不同天数中两者均闭闸）、`either_gate_open`（至少一者
+开闸）、`no_anchor`（未指定锚天数）、`different_trade_dates`（逐笔交易
+不同日期数）用于判断硬上限实际触发是否充分。
+
+原引擎另报 `entries`（入场次数）、`switches`（换仓次数）、`exits`（退出
+次数）、`position_changes`（入场与换仓次数合计）；不能把后者当成全部
+买卖委托次数。两轮完整交易和年度数据均保留，便于复查。
+
+![预定第3相位净值与锚占用](nav_comparison.png)
