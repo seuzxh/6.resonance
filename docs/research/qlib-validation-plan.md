@@ -134,7 +134,7 @@ quote_df 里的 open/high/low/volume 只为 Exchange 成交与停牌通道的完
 |---|---|---|---|---|
 | F1 | 领先指数动量 | `mom_i(T) = close_i(T)/close_i(T−W_l) − 1`，i 取三锚池；`leader(T) = argmax_i mom_i`（窗口收益不完整者不参选；并列时按代码序取先，保证确定性） | W_l=10；池 {399001.SZ 深证成指, 399303.SZ 国证2000, 000688.SH 科创50} | 当日领先指数：F2/F4/F5/F7 的基准 |
 | F2 | 入场闸门 | `gate(T) = close_leader(T)/close_leader(T−W_p) − 1 > 0` | W_p=3 | False 时当日无候选：空仓不入场；持仓检查日退出至现金 |
-| F3 | 候选资格 | 概念近 W_p 日复合 > 0 **且** 近 W_r 日收益序列完整（窗口内无 NaN；激活较晚或数据缺失的概念出局） | W_p=3, W_r=10 | 进入当日共振评分池 |
+| F3 | 候选资格 | 概念近 W_p 日复合 > 0 **且** 近 W_r 日收益序列完整（窗口内无 NaN；激活较晚或数据缺失的概念出局） | W_p=3, W_r=10 | 进入当日上涨共振池 |
 | F4 | 同步率 sync | `Σ_t w_t·1[r_L,t>0 ∧ r_c,t>0] / Σ_t w_t·1[r_L,t>0]`，t 取最近 W_r 个交易日，`w_t = 0.5^(age_t/h)`（age 为距今日数；分母只计领先指数上涨日） | W_r=10, h=F7 | score 分项一 |
 | F5 | 捕获率 capture | `Σ_t w_t·max(r_c,t,0) / Σ_t w_t·max(r_L,t,0)`（分母为全窗正部加权和；进入 score 前 clip 到 [0,2]） | 同上 | score 分项二 |
 | F6 | 上涨共振分 score | `score = sync × sqrt(clip(capture, 0, 2))`；并列按代码升序（确定性排序） | — | 日线榜排序键（选出 Top daily_top=5 进分钟层） |
@@ -292,7 +292,7 @@ min_hold=3（自执行日起最短持有）、stop_loss=5%（判定仍按收盘�
 |---|---|---|
 | R1 | pyqlib 升级可能破坏桩与覆写点（Cal 替换、get_quote_from_qlib、C 注入） | 适配层带版本断言锁定 0.9.7；升级后必须重跑 `research/qlib_route_a/qlib_smoke.py` 冒烟 |
 | R2 | float32 舍入可能让阈值附近的决策翻转 | 两个引擎统一使用 float32 化的矩阵（P2 ref_runs 口径），决策一致性由构造保证；报告中注明与 float64 口径的终值差异（仅供参考） |
-| R3 | qlib Exchange 的成本与成交细节可能无法对齐一致 | 由 E-Gate 兜底，必要时启用保底方案 B（§五 P3.4） |
+| R3 | qlib Exchange 的成本与成交细节可能无法对齐一致 | 由 E-Gate 等价验证门检查，必要时按预注册启用方案 B（§五 P3.4） |
 | R4 | 概念前导 NaN 与激活日语义可能丢失 | D-Gate 第 1/2 条验收覆盖（NaN 位置相等 + 停牌标记）；信号端资格规则不变 |
 | R5 | pandas 2/3 跨环境语义差异 | 两环境之间唯一的契约是文件（桥 parquet + ref_runs CSV）；resonance 环境不 import pyqlib，qlib 环境不 import resonance |
 | R6 | 相位敏感性被误读（网格相位敏感性极高，基线复现报告 §一.3） | 全部结论只取 5 相位中位；单相位数字仅作诊断 |
@@ -442,7 +442,7 @@ research/qlib_route_a/qlib_pipeline.py      # 因子表达式清单 + DatasetH �
    因子只在其交集日有效，因子覆盖率/NaN 报告须按日历口径显式上报；
    若需补齐缺口走 `ops/collect_minute5.py --backfill`（约 14.2M
    dataVol，需配额）。
-3. 概念 5min 覆盖 389/529（142 个无 HF，含两个退役码）：训练 universe
+3. 概念 5min 覆盖 389/529（142 个无 HF，含两个退役码）：训练 标的全集
    存在选择偏差，评估沿用降级计数口径。
 4. 概念目录是 2026-09-19 的幸存者快照（playbook §四）。
 5. 训练与验证必须按时间切分（防泄漏），禁止随机切分，也禁止用测试窗

@@ -1,6 +1,6 @@
 # resonance — 指数—概念上涨共振策略研究
 
-概念板块指数与宽基指数的"共振"（相关性）分析及其驱动的指数轮动回测。
+概念指数与宽基指数的上涨共振分析及其驱动的指数轮动回测。
 数据源同花顺 iFinD REST；迁移自 ChatGPT Codex 会话（2026-09-17/18），
 起源上下文见 [docs/research/gpt-session-summary.md](docs/research/gpt-session-summary.md)。
 
