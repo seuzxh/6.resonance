@@ -53,6 +53,8 @@ def test_cap_has_explicit_no_anchor_instead_of_exceeding_quota():
 def test_mean_ranking_aligns_concepts_and_averages_scores_not_components():
     left = rank(["a", "b", "c"], [1.0, .8, .9])
     right = rank(["b", "a", "d"], [.6, .2, 1.4])
+    right["sync"] = [.5, .4, 1.]
+    right["capture"] = [1.44, .25, 1.96]
     combined = mean_ranking([left, right])
     assert combined.concept.tolist() == ["b", "a"]
     np.testing.assert_allclose(combined.score, [.7, .6])

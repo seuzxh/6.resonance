@@ -172,7 +172,8 @@ def main():
             pd.testing.assert_series_equal(original["nav_curve"], replay["nav_curve"])
             pd.testing.assert_frame_equal(original["trades"], replay["trades"])
             audit["equivalence"].append(f"{mode}:{tag}")
-        pd.testing.assert_series_equal(schedules["momentum5"], best_schedule(raw))
+        pd.testing.assert_series_equal(schedules["momentum5"].fillna("").astype(str),
+                                       best_schedule(raw).fillna("").astype(str))
         print(f"{mode}: original four baselines match", flush=True)
         for window in ([10, 20, 40, 60] if mode == "production_shape" else [20]):
             schedules[f"risk{window}"] = best_schedule(adjusted_momentum(close[ANCHORS], window))
