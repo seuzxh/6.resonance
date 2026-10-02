@@ -15,10 +15,6 @@
 
 ## 在册实验
 
-- `resonance_alternatives_core.py` 与 `resonance_alternatives_run.py`：
-  三类替代机制验证，预注册见
-  [resonance-alternatives.md](../docs/research/resonance-alternatives.md)。
-
 qlib 验证与扩展轨（路线 A）的代码文件集中在子目录
 [qlib_route_a/](qlib_route_a/)（含 README 与目录命名说明——禁止命名为
 `qlib/`，会遮蔽 pyqlib 包）：

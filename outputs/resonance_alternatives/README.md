@@ -81,3 +81,24 @@
 买卖委托次数。两轮完整交易和年度数据均保留，便于复查。
 
 ![预定第3相位净值与锚占用](nav_comparison.png)
+
+## 复现与归档
+
+完整实施、6项研究行为测试与图表汇总程序保留在提交 `09dae7d`（已验证
+实施快照）；随后按仓库“收口即清理”规则移除一次性脚本及对应测试。
+实施快照的完整测试共60项通过；日线、分钟、目录三份输入文件摘要见
+审计文件，两轮一致且运行前后未变。独立审查覆盖首轮规则与第二轮池内
+隔离、矩阵和对照，无未解决的重要问题。
+
+在该提交的独立检出目录、相同只读数据副本下，依次运行：
+
+```bash
+conda run -n resonance python -m pytest -q
+conda run --no-capture-output -n resonance python research/resonance_alternatives_run.py
+conda run --no-capture-output -n resonance python research/resonance_alternatives_pool.py
+conda run --no-capture-output -n resonance python research/resonance_alternatives_report.py
+```
+
+主运行与复验程序保留源文件内容摘要；原始行情变化后，不能将重跑结果
+称为同一输入的复现。生产引擎、生产运行程序、冻结参数及样本外评价数据
+均未修改；本工作树保留报告、图和未入版本控制的数据表。

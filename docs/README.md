@@ -26,7 +26,8 @@
 ## research/ 寻优研究（历史过程——写侧）
 
 - [resonance-alternatives.md](research/resonance-alternatives.md) — 风险调整动量、
-  多锚共同排序与锚占用硬上限的预注册历史研究（2026-10-03）。
+  多锚共同排序与锚占用硬上限研究（2026-10-03）：两轮1710次回测完成，
+  9个中心均不采纳；含固定池交互复验、有限观察与净值图。
 
 - [anchor-selection.md](research/anchor-selection.md) — 单锚概念策略表现选锚与
   软占用惩罚实验（2026-10-03）：预注册主矩阵和纯日线诊断均完成，两项主规则
