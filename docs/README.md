@@ -25,9 +25,14 @@
 
 ## research/ 寻优研究（历史过程——写侧）
 
-- [qlib-decision-learning.md](research/qlib-decision-learning.md) — qlib标签倒置
-  修复审计与决策质量学习设计：先纠错复验，再滚动检验胜率和扣费收益；
-  2026-10-03，尚未重训形成新收益结论。
+- [qlib-label-recheck.md](research/qlib-label-recheck.md) — 标签纠错后受控
+  重训75次回放，正向模型未胜过原分钟重排。
+- [qlib-decision-learning.md](research/qlib-decision-learning.md) — 正向可成交
+  目标的滚动入场学习，1125次回放未同时通过胜率与跨阶段门槛。
+- [qlib-candidate-rerank.md](research/qlib-candidate-rerank.md) — 1395次候选
+  学习重排有单点改善，但邻域未通过，保留观察。
+- [qlib-episode-learning.md](research/qlib-episode-learning.md) — 按原退出
+  规则定义完整交易目标的独立入场学习实验，预注册后实施中。
 
 - [resonance-alternatives.md](research/resonance-alternatives.md) — 风险调整动量、
   多锚共同排序与锚占用硬上限研究（2026-10-03）：两轮1710次回测完成，
