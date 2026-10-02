@@ -1,5 +1,11 @@
 # qlib 路线 A 扩展轨实施报告（T1–T7 全流程验证）
 
+> **2026-10-03更正：学习结论待重训复核。** 本文所用未来收益标签发生
+> 分子分母倒置，现已修复并通过手算测试。旧模型收益保留为当时策略记录，
+> 不能作为正确标签模型无效的证据；尾盘等因子的相关方向解释也须重算。
+> 原独立引擎复算不受该标签错误影响。详见
+> [标签审计与新设计](../../docs/research/qlib-decision-learning.md)。
+
 > 2026-09-29 夜实施（用户指令"开始实施，执行完成后进行 qlib 全流程验证"）。
 > 规格：[docs/research/qlib-validation-plan.md](../../docs/research/qlib-validation-plan.md) §十；
 > 实施计划：[docs/superpowers/plans/2026-09-29-qlib-routeA-5min-factors.md](../../docs/superpowers/plans/2026-09-29-qlib-routeA-5min-factors.md)。

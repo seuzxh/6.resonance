@@ -25,6 +25,10 @@
 
 ## research/ 寻优研究（历史过程——写侧）
 
+- [qlib-decision-learning.md](research/qlib-decision-learning.md) — qlib标签倒置
+  修复审计与决策质量学习设计：先纠错复验，再滚动检验胜率和扣费收益；
+  2026-10-03，尚未重训形成新收益结论。
+
 - [resonance-alternatives.md](research/resonance-alternatives.md) — 风险调整动量、
   多锚共同排序与锚占用硬上限研究（2026-10-03）：两轮1710次回测完成，
   9个中心均不采纳；含固定池交互复验、有限观察与净值图。

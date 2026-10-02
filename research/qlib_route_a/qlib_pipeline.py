@@ -88,11 +88,11 @@ def make_labels(data, concepts: list[str], start: str, end: str) -> pd.DataFrame
     from qlib.data import D
 
     # 负向 Ref 会裁掉各自不同长度的末端（k=1/2/5），同一请求里按列拼接
-    # 会长度不齐——逐条取数、pandas 侧对齐（与官方 Ref(-2)/Ref(-1) 成对
-    # 算子标签写法等价，见 Alpha158）
+    # 会长度不齐——逐条取数，再按日期和概念对齐。
+    # 必须是未来价除以当前价；倒置会把上涨标成负值，与降序选高分相反。
     parts = []
     for k in (1, 2, 5):
-        d = D.features(concepts, [f"$close/Ref($close,-{k})-1"], start, end,
+        d = D.features(concepts, [f"Ref($close,-{k})/$close-1"], start, end,
                        freq="day", disk_cache=0)
         d.columns = [f"LABEL{k}"]
         parts.append(d)

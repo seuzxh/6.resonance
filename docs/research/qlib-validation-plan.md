@@ -414,8 +414,12 @@ research/qlib_route_a/qlib_pipeline.py      # 因子表达式清单 + DatasetH �
   表达的因子（如 F1 动量、F2 闸门）改写成 qlib 表达式；EW 类因子
   （F4–F7）若也要改写，先经 `custom_ops` 注册自定义算子，并加一道
   一致性核对——表达式结果与 resonance 引擎逐日对齐之后才允许使用。
-- **标签**：qlib 惯例用负 Ref 取未来——如 `Ref($close,-1)/Ref($close,-2)-1`
-  对齐 T+1 相对收益口径（与 A0 冒烟的 pandas 标签互为对照）。
+- **标签**：`Ref`（时序引用算子）的负参数表示未来；两个未来收盘间收益应为
+  `Ref($close,-2)/Ref($close,-1)-1`（第二个未来收盘除以第一个未来收盘减一）。
+  当前 `make_labels`（未来收盘收益标签函数）则定义为未来收盘相对信号日
+  收盘，使用 `Ref($close,-k)/$close-1`（未来第k日收盘除以当前收盘减一）。
+  2026-10-03已修复倒置；两种标签与次日开盘成交收益均不能混为一谈，
+  影响范围及下一轮方案见[决策质量学习设计](qlib-decision-learning.md)。
 - **训练**：`DataHandlerLP`（表达式字段）+ `DatasetH` 时间切分 +
   `LGBModel`；路线 A 下是真 qlib.init，workflow Recorder 可用
   （A0 冒烟里置空 `R.log_metrics` 的桩在此路线不需要）。

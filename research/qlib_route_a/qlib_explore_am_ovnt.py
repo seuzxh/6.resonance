@@ -41,7 +41,7 @@ EXPR_5MIN = {
 }
 EXPR_DAY = {"OVNT_GAP_D": "$open/Ref($close,1)-1"}  # 日线口径隔夜跳空（精确）
 
-REF_LINE = "TAIL_MOM24（冻结族最强）：+0.1560 / t=+2.41（test 段 LABEL1，37 日）"
+REF_LINE = "尾盘动量旧对照使用倒置标签，方向已失效；2026-10-03后须按正向标签重算"
 
 
 def main() -> int:

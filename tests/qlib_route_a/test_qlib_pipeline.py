@@ -63,11 +63,16 @@ def test_labels_future_ref(env):
     lab = make_labels(env, concepts=["A"], start="2025-12-01",
                       end="2025-12-31")
     closes = env.wide("day", "close")["A"]
-    manual = closes / closes.shift(-1) - 1
+    manual = closes.shift(-1) / closes - 1
     got = lab["LABEL1"].droplevel("instrument")
     both = pd.concat([got.rename("g"), manual.rename("m")], axis=1).dropna()
     assert len(both) >= 10
     assert np.allclose(both["g"], both["m"], atol=1e-6)
+    # 首日100，随后每个交易日增加30/29：未来上涨必须给出正标签。
+    first = lab.loc[("A", pd.Timestamp("2025-12-01"))]
+    assert float(first["LABEL1"]) == pytest.approx(0.010344827586, abs=1e-6)
+    assert float(first["LABEL2"]) == pytest.approx(0.020689655172, abs=1e-6)
+    assert float(first["LABEL5"]) == pytest.approx(0.051724137931, abs=1e-6)
 
 
 def test_rank_ic_perfect_signal():
