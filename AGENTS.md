@@ -2,10 +2,11 @@
 
 ## 项目定位
 
-指数—概念上涨共振策略研究与样本外验证。现行生产口径 **V4.3 三锚动选**
-（深证成指/国证2000/科创50），参数冻结见
-[docs/spec/v43-best-plan.md](docs/spec/v43-best-plan.md)；OOS 四轨纸面验证
-运行中（[docs/ops/oos-validation-design.md](docs/ops/oos-validation-design.md)，
+指数—概念上涨共振策略研究与样本外验证。现行生产冻结配置为 **V4.4 开盘执行的三锚动选**
+（深证成指/国证2000/科创50），当前完整说明见
+[docs/spec/current-plan.md](docs/spec/current-plan.md)，执行规格见
+[docs/spec/v44-open-exec-plan.md](docs/spec/v44-open-exec-plan.md)；OOS（样本外）四轨纸面验证
+参数保持冻结，历史记录为每日同步暂停，外部调度状态须另核验（[docs/ops/oos-validation-design.md](docs/ops/oos-validation-design.md)，
 评价期禁改参）。领域词汇表见
 [CONTEXT.md](CONTEXT.md)——锚/领先指数、分钟重排/分钟执行层、降级/兜底
 等易混概念的唯一权威区分；实验方法论（预注册协议、七条定律、负结论

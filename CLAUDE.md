@@ -1,13 +1,13 @@
 # CLAUDE.md
 
 本文件只补充 ZCode 的项目约束；项目全貌见
-[README.md](README.md)，现行方案见 [docs/spec/v43-best-plan.md](docs/spec/v43-best-plan.md)。
+[README.md](README.md)，现行方案见 [docs/spec/current-plan.md](docs/spec/current-plan.md)。
 
 ## 项目定位
 
-指数—概念上涨共振策略研究与样本外验证。现行生产口径 **V4.3 三锚动选**
-（深证成指/国证2000/科创50，参数冻结见 docs/spec/v43-best-plan）；OOS 四轨纸面验证
-运行中（docs/ops/oos-validation-design.md，评价期禁改参）。数据源同花顺 iFinD
+指数—概念上涨共振策略研究与样本外验证。现行生产冻结配置为 **V4.4 开盘执行的三锚动选**
+（深证成指/国证2000/科创50，执行规格见 docs/spec/v44-open-exec-plan.md）；OOS（样本外）四轨纸面验证
+参数保持冻结，历史记录为每日同步暂停，本次未核验外部调度（docs/ops/oos-validation-design.md，评价期禁改参）。数据源同花顺 iFinD
 REST + 本地 qlib 备用链路。领域词汇表见
 [CONTEXT.md](CONTEXT.md)（锚/领先指数、降级/兜底、分钟重排/分钟执行层
 等易混概念的唯一权威区分）。
@@ -43,7 +43,7 @@ REST + 本地 qlib 备用链路。领域词汇表见
 ## 常用验证与入口
 
 ```bash
-conda run -n resonance python -m pytest -q            # 离线测试（45 个）
+conda run -n resonance python -m pytest -q            # 离线测试（数量以运行结果为准）
 conda run -n resonance python ops/probe.py           # iFinD 网络冒烟
 conda run -n resonance python ops/signal_daily.py    # OOS 每日 runner（暂停中，用户通知后开启）
 conda run -n resonance python ops/backtest_v41.py    # 生产栈回测复现
@@ -57,5 +57,5 @@ conda run -n qlib python research/qlib_route_a/qlib_equivalence.py           # �
 ## 关键参数位置
 
 `resonance/config.py`：V43_ANCHOR_POOL（三锚）、V41_BROAD_POOL（A9 对照轨）、
-历史池与采集参数。冻结参数清单：docs/spec/v43-best-plan.md §三。
+历史池与采集参数。冻结参数与现行执行说明：docs/spec/current-plan.md。
 数据资产明细与口径：docs/data/data-inventory.md（2026-09-25 清点）。
