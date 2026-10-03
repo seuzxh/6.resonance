@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "a480b3df-0ba9-4188-8319-85a83409cb8f",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/home/zxh/.codex/worktrees/1b43/6.resonance/docs/diagrams/current-plan-20261003/candidate.json",
+  "output": "/home/zxh/.codex/worktrees/1b43/6.resonance/docs/diagrams/current-plan-20261003/current-workflow.html",
+  "specification": {
+    "sha256": "a1f8df14115fcdd3259cf7f369612e041891a3f80cb9d88b8df9fa329b4c9f7c",
+    "bytes": 9155
+  },
+  "artifact": {
+    "sha256": "3b005cf6a02cccd4bdebe5602689362c95ba7cf98d6476ec63216966c5cc5cea",
+    "bytes": 767967
+  }
+}
