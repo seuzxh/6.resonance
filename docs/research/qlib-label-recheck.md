@@ -1,5 +1,8 @@
 # qlib 标签纠错复验：预注册与结论
 
+> 已收口；实施与研究测试完整快照为 `cb600a3`（五轮代码归档）。按项目规则
+> 删除一次性脚本，模型和账单保留本地输出目录，汇总见[自主探索结论](qlib-autonomous-summary.md)。
+
 2026-10-03，用户授权持续自主探索后的第一轮。先于重训与策略结果冻结。
 实施为 `research/qlib_label_recheck_train.py`（qlib环境重训）与
 `research/qlib_label_recheck_eval.py`（resonance环境连续回测）；公共研究

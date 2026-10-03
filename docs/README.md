@@ -25,6 +25,9 @@
 
 ## research/ 寻优研究（历史过程——写侧）
 
+- [qlib-autonomous-summary.md](research/qlib-autonomous-summary.md) — 2026-10-03
+  五轮自主探索汇总：5115次账户回放，尚无稳健采纳方案，含观察点与净值图。
+
 - [qlib-label-recheck.md](research/qlib-label-recheck.md) — 标签纠错后受控
   重训75次回放，正向模型未胜过原分钟重排。
 - [qlib-decision-learning.md](research/qlib-decision-learning.md) — 正向可成交
@@ -32,7 +35,9 @@
 - [qlib-candidate-rerank.md](research/qlib-candidate-rerank.md) — 1395次候选
   学习重排有单点改善，但邻域未通过，保留观察。
 - [qlib-episode-learning.md](research/qlib-episode-learning.md) — 按原退出
-  规则定义完整交易目标的独立入场学习实验，预注册后实施中。
+  规则定义完整交易目标，1125次回放仍未改善完整交易胜率。
+- [qlib-volume-rerank.md](research/qlib-volume-rerank.md) — 量价信息增强及
+  同覆盖对照，1395次回放未通过新增信息与邻域要求。
 
 - [resonance-alternatives.md](research/resonance-alternatives.md) — 风险调整动量、
   多锚共同排序与锚占用硬上限研究（2026-10-03）：两轮1710次回测完成，

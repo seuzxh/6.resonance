@@ -15,12 +15,11 @@
 
 ## 在册实验
 
-2026-10-03新增：`qlib_label_recheck_*.py`（标签纠错受控复验，结论已记录）
-和 `qlib_decision_learning_*.py`（滚动入场质量学习，实施中），分别对应
-[纠错复验](../docs/research/qlib-label-recheck.md)与
-[决策质量学习](../docs/research/qlib-decision-learning.md)。新实验只读截至
-2026-09-18的行情，生产与现行样本外评价冻结。旧学习结论的标签方向错误
-及其影响范围以上述两份文档为准；新轮收口后清理实施脚本。
+2026-10-03五轮自主学习实验已收口，实施脚本及研究辅助测试按纪律清理；
+完整快照为 `cb600a3`（五轮代码和测试），结论见
+[自主探索汇总](../docs/research/qlib-autonomous-summary.md)。5115次回放
+尚无方案通过全套采纳门槛，生产与现行样本外评价冻结。旧学习标签方向
+错误的影响边界与重训结论见[纠错复验](../docs/research/qlib-label-recheck.md)。
 
 qlib 验证与扩展轨（路线 A）的代码文件集中在子目录
 [qlib_route_a/](qlib_route_a/)（含 README 与目录命名说明——禁止命名为
