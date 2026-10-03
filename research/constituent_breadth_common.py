@@ -46,3 +46,7 @@ def shrunken_breadth_pair(returns,keep,strength=20,min_coverage=.9):
     if (n/a.shape[1]<min_coverage).any():return np.nan,np.nan
     ratio=(((a>0)&valid).sum(axis=1)+strength/2)/(n+strength)
     return float(ratio[-1]),float(ratio.mean())
+
+
+def observable_members(members,snapshot,starts):
+    return [c for c in members if c in starts and pd.notna(starts[c]) and starts[c]<=snapshot]

@@ -57,3 +57,10 @@ def test_neutral_shrinkage_small_groups_and_missing_prices():
     assert np.isnan(shrunken_breadth_pair(r,[False])[0])
     r[0,0]=np.nan
     assert np.isnan(shrunken_breadth_pair(r,[True])[0])
+
+
+def test_members_must_have_history_by_snapshot_not_signal_date():
+    from research.constituent_breadth_common import observable_members
+    starts={'old':pd.Timestamp('2020-01-01'),'new':pd.Timestamp('2024-12-04')}
+    assert observable_members(['old','new','unknown'],pd.Timestamp('2024-11-29'),starts)==['old']
+    assert observable_members(['old','new'],pd.Timestamp('2024-12-31'),starts)==['old','new']
