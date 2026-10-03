@@ -25,6 +25,8 @@
 
 ## research/ 寻优研究（历史过程——写侧）
 
+- [constituent-breadth.md](research/constituent-breadth.md) — 双锚独立学习、历史成员核验、中性收缩与上市边界隔离复验；包含数据资格及实际学习覆盖限制。
+
 - [qlib-autonomous-summary.md](research/qlib-autonomous-summary.md) — 2026-10-03
   五轮自主探索汇总：5115次账户回放，尚无稳健采纳方案，含观察点与净值图。
 

@@ -49,3 +49,11 @@ outputs/qlib_decision_learning/models/*.txt
 outputs/qlib_candidate_rerank/models/*.txt
 outputs/qlib_episode_learning/models/*.txt
 outputs/qlib_volume_rerank/models/*.txt
+
+# 成分研究的冻结切片与可重建模型留本地，正式净值图另行跟踪
+outputs/**/*.npy
+outputs/constituent*/models/*.txt
+outputs/constituent_audit/*.txt
+outputs/constituent_breadth/*.txt
+outputs/constituent_breadth/nav_centers.png
+outputs/constituent_shrinkage/nav_centers.png

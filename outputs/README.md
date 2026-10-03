@@ -20,3 +20,5 @@
 旧版本交付 v3 已于 2026-09-27 删除（冻结参数快照录
 [docs/ops/version-catalog.md](../docs/ops/version-catalog.md)）；
 `archive/` 为已归档实验保留；版本目录见同上链接。
+
+本轮成分研究的三个目录分别为 `constituent_breadth/`（原特征独立复验及成员数据）、`constituent_shrinkage/`（中性收缩初始诊断）、`constituent_shrinkage_clean/`（上市前成员记录隔离后的正式评价）。原始查询、模型和账单留本地；结论见[成分研究](../docs/research/constituent-breadth.md)。
