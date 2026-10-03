@@ -7,13 +7,18 @@
 > `ops/signal_daily.py FROZEN`），文档是规格的叙述面，git commit 即版本号；
 > 「评价期禁改参」= 晋升门，新版本只能整体替换、不能原地修改。
 
+## 当前入口
+
+- [当前详细方案](spec/current-plan.md)：生产三锚、研究双锚、候选边界与完整持仓规则。
+- [当前流程图](diagrams/current-plan-20261003/current-workflow.html)：已按源码核对的每日运行、数据降级与研究停止流程。
+
 ## spec/ 冻结规格（产物层——两过程的唯一接口）
 
-- [v43-best-plan.md](spec/v43-best-plan.md) — V4.3 三锚动选现行口径：
+- [v43-best-plan.md](spec/v43-best-plan.md) — V4.3 三锚动选历史收盘口径：
   冻结参数（§三）、组件来源表、领先分布与 2022-24 时间外推警示。
 - [v44-open-exec-plan.md](spec/v44-open-exec-plan.md) — V4.4 成交时点
-  切换 T+1 开盘（2026-09-29 用户裁决立项，规划中）：语义定义、引擎
-  改动设计、锚点重算清单、OOS 四轨处置待决项。
+  切换 T+1 开盘（2026-09-29 已实施）：语义定义、引擎
+  改动记录、锚点重算与四轨评价重启。
 
 ## ops/ 每日运行（推理过程）
 
@@ -25,6 +30,31 @@
 
 ## research/ 寻优研究（历史过程——写侧）
 
+- [exposure-roadmap.md](research/exposure-roadmap.md) — 下一轮开仓、空仓与仓位恢复方向：既有负结论、机制差异、账户前置要求和待冻结判据；仅整理，未开跑。
+
+- [constituent-breadth.md](research/constituent-breadth.md) — 双锚独立学习、历史成员核验、中性收缩与上市边界隔离复验；包含数据资格及实际学习覆盖限制。
+
+- [qlib-autonomous-summary.md](research/qlib-autonomous-summary.md) — 2026-10-03
+  自主探索总账：前五轮5115次，加后续5670次，共10785次账户回放，尚无稳健采纳方案，含观察点与净值图。
+
+- [qlib-label-recheck.md](research/qlib-label-recheck.md) — 标签纠错后受控
+  重训75次回放，正向模型未胜过原分钟重排。
+- [qlib-decision-learning.md](research/qlib-decision-learning.md) — 正向可成交
+  目标的滚动入场学习，1125次回放未同时通过胜率与跨阶段门槛。
+- [qlib-candidate-rerank.md](research/qlib-candidate-rerank.md) — 1395次候选
+  学习重排有单点改善，但邻域未通过，保留观察。
+- [qlib-episode-learning.md](research/qlib-episode-learning.md) — 按原退出
+  规则定义完整交易目标，1125次回放仍未改善完整交易胜率。
+- [qlib-volume-rerank.md](research/qlib-volume-rerank.md) — 量价信息增强及
+  同覆盖对照，1395次回放未通过新增信息与邻域要求。
+
+- [resonance-alternatives.md](research/resonance-alternatives.md) — 风险调整动量、
+  多锚共同排序与锚占用硬上限研究（2026-10-03）：两轮1710次回测完成，
+  9个中心均不采纳；含固定池交互复验、有限观察与净值图。
+
+- [anchor-selection.md](research/anchor-selection.md) — 单锚概念策略表现选锚与
+  软占用惩罚实验（2026-10-03）：预注册主矩阵和纯日线诊断均完成，两项主规则
+  不采纳；含相位收敛、分钟陈旧窗口审计及图表入口。
 - [experiment-playbook.md](research/experiment-playbook.md) — 方法论手册：
   预注册协议、七条定律、负结论登记表（新实验必读 §五检查清单）。
 - [qlib-validation-plan.md](research/qlib-validation-plan.md) — qlib 独立引擎
@@ -51,7 +81,8 @@
 
 ## diagrams/ 图示
 
-- 五张交互式 HTML：系统架构 / OOS 每日运行流程 / 信号生命周期时序 /
+- 当前流程以本页新图为准；以下五张为历史架构记录，含旧执行口径，不能替代当前方案。
+- 五张历史交互式 HTML：系统架构 / OOS 每日运行流程 / 信号生命周期时序 /
   数据流 / 持仓状态机（`src/` 为 JSON 规格，archify 生成，站点图库同步展示）。
 
 ---

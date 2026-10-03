@@ -40,7 +40,7 @@ data/cache 的 parquet 注入 qlib 数据层（免 bin、qlib.init 正常使用�
    （`Ref($close,-1)`，收盘对收盘——预测目标定义，不随成交口径变）；
    训练/验证/测试按时间切分，禁止随机切分。**成交口径 = V4.4 的
    T+1 开盘价**（用户 2026-09-29 裁决，spec/v44-open-exec-plan.md）：
-   X3（T6）两臂均须在引擎 `exec_price="open"` 模式下运行——该引擎
+   X3（T6）两组方案均须在引擎 `exec_price="open"` 模式下运行——该引擎
    改动属于 v44 spec 的任务，是 T6 的前置依赖。
 8. **措辞与判据**：结论按 L3 上界措辞、幸存者目录与指数不可交易标注；
    收益对照只取 5 相位中位；判据已预注册于 Task 6（playbook §一）。
@@ -943,7 +943,7 @@ def make_model_post_rank(pred: pd.DataFrame):
   hl_source="leader")` + 真实 MinuteBarProvider；配置 B（模型版）=
   `V3Params(topk=3, hl_source="leader", exec_price="open")`
   （daily_top=0，无分钟层）+ `post_rank=钩子`；配置 A 同样带
-  `exec_price="open"`（两臂同口径，V4.4）。两配置同窗、同 5 相位（test 段前 5 个交易日起点）、
+  `exec_price="open"`（两组方案同口径，V4.4）。两配置同窗、同 5 相位（test 段前 5 个交易日起点）、
   成本 10bp，经 `ops/backtest_v3.py:evaluate` 出统计。
 
 - [ ] **Step 4: 运行测试确认通过**

@@ -7,13 +7,12 @@
 （推理过程）只读冻结规格**，两个过程通过不可变的冻结规格解耦，
 总索引见 [docs/README.md](docs/README.md)。
 
-**现行方案：[V4.3 三锚动选（暂定）](docs/spec/v43-best-plan.md)**
-—— 深证成指/国证2000/科创50 三锚动选 + 日线 Top5 × 24 根 5 分钟纯分钟重排
-+ Top3 缓冲；OOS 四轨样本外验证运行中（每日同步暂停，用户通知后开启）。
+**现行方案：[详细配置与研究结论](docs/spec/current-plan.md)**
+—— 生产为三锚动选与V4.4次日开盘执行；研究双锚及成分候选未晋升生产。持续自主探索已停止，正式样本外评价参数冻结，本次未恢复每日同步。
 
 ## 📌 冻结规格（产物层——两过程的接口）
 
-- [V4.3 三锚动选（现行，2026-09-23 定档）](docs/spec/v43-best-plan.md)
+- [V4.3 三锚动选（历史收盘口径）](docs/spec/v43-best-plan.md)
 
 ## 🔁 每日运行（推理过程）
 
@@ -38,6 +37,10 @@
 - [数据资产清单与口径](docs/data/data-inventory.md)
 
 ## 📐 图表（交互式）
+
+- [当前流程：运行、持仓与研究边界](docs/diagrams/current-plan-20261003/current-workflow.html)
+
+以下图示为历史架构记录，涉及旧执行口径时以当前方案为准。
 
 - [系统架构：数据源 → 缓存 → V3 引擎 → 产出](docs/diagrams/architecture.html)
 - [OOS 每日运行流程（三道数据防线）](docs/diagrams/oos-daily-workflow.html)

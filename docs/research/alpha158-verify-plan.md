@@ -1,5 +1,10 @@
 # Alpha158 因子验证（A158-V1）预注册设计——2026-09-29 立项（用户指令"进行验证"）
 
+> 2026-10-03状态更正：该历史设计依据的因子相关方向和模型标签受到
+> 未来收益公式倒置影响，代码已修，学习结论待重训复核。下文保留原注册
+> 以便追溯，不将其旧方向作为当前建议。直接按原始因子排序的历史回测
+> 记账不因标签修复而自动变化，详见[标签审计](qlib-decision-learning.md)。
+
 > 依据：Alpha158 × 5min 探索性挖掘（outputs/qlib_ml/exploratory_alpha158.md）
 > 发现 BETA20/RSQR20（正）与 CNTP30（负）为族级最强候选。本实验把它们
 > 推进到验证级。**与 X3（HARMFUL，playbook §三）的关系：换特征集重开**
@@ -13,16 +18,16 @@
 占比，IC 为负）含有现行 F8 分钟共振之外的增量排序信息，用于重排日线
 Top5 可改善组合表现。
 
-## 二、三臂设计（同窗同相位同成本，V4.4 开盘口径）
+## 二、三组方案设计（同窗同相位同成本，V4.4 开盘口径）
 
-| 臂 | 重排分来源 | 说明 |
+| 方案 | 重排分来源 | 说明 |
 |---|---|---|
 | A（基线） | F8 分钟共振（现行栈，daily_top=5） | 与 X3 的 A 同配置重跑（同数据自洽） |
 | B（主处理） | LGBModel({BETA20, RSQR20, CNTP30}) | 时间切分同 X3（train 至 2026-05-29 / valid 6–7 月 / test 8 月起），模型分重排 Top5 |
 | C（副处理） | BETA20 单因子 | 检验"稳健动量直接替代分钟共振"的最简形态 |
 
 执行层一律不动（topk=3 缓冲、min_hold=3、止损 5%、10bp、
-exec_price=open）；B/C 臂的 post_rank 钩子镜像 F8' 降级链（缺分概念
+exec_price=open）；B/C 方案的 post_rank 钩子镜像 F8' 降级链（缺分概念
 剔除计数、可评 <2 回退计数）。窗口 = test 段（2026-08-03 起 5 个交易日
 相位 → 2026-09-23），与 X3 完全一致。
 
@@ -38,7 +43,7 @@ exec_price=open）；B/C 臂的 post_rank 钩子镜像 F8' 降级链（缺分概
 
 ## 四、数据覆盖与边界
 
-universe = 5min 覆盖概念 389/529（142 无 HF，选择偏差沿 X3 口径）；
+标的全集 = 5min 覆盖概念 389/529（142 无 HF，选择偏差沿 X3 口径）；
 特征全为 T 日 15:00 可得量（无未来数据）；标签收盘对收盘不含成本。
 结论措辞：样本内上界（L3）、单一 regime、幸存者目录、指数不可交易。
 
@@ -58,13 +63,13 @@ universe = 5min 覆盖概念 389/529（142 无 HF，选择偏差沿 X3 口径）
 - `research/qlib_route_a/alpha158_verify_prep.py`（qlib env）：三特征
   日频化 + LGBM 训练 → `outputs/qlib_ml/alpha158_features.parquet`、
   `pred_a158_3f.parquet`（跨环境契约）。
-- `research/qlib_route_a/alpha158_verify.py`（resonance env）：三臂
+- `research/qlib_route_a/alpha158_verify.py`（resonance env）：三组方案
   × 5 相位 → `outputs/qlib_ml/a158_phases.csv` + 判决。
 
 
 ## 七、结果与判决（2026-09-29 执行；判据 §三先行冻结）
 
-| 臂 | 总收益中位 | 回撤中位 | 夏普中位 | 判决 vs A |
+| 方案 | 总收益中位 | 回撤中位 | 夏普中位 | 判决 vs A |
 |---|---:|---:|---:|---|
 | A（F8 基线） | +4.60% | −8.42% | 1.20 | — |
 | B（3因子 LGBM） | −6.50% | −12.94% | −1.65 | **HARMFUL**（中位差 −11.10pp，1/5 相位） |

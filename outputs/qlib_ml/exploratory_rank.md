@@ -1,6 +1,6 @@
 # rank 因子族探索（预注册执行，rank-factors-plan.md）
 
-universe：5min 覆盖概念 389；全窗 2025-09-26~2026-09-23 + test 段（2026-08-03~2026-09-23）日频 Spearman Rank IC。
+标的全集：5min 覆盖概念 389；全窗 2025-09-26~2026-09-23 + test 段（2026-08-03~2026-09-23）日频 Spearman Rank IC。
 多重比较：9 条新信息族 Bonferroni |t|≥2.89（3.5 严线并列）；对照组不计候选。样本内、单一 regime、幸存者目录（L3 上界措辞，不作采纳依据）。
 
 | 因子 | 覆盖率 | 全窗IC | 全窗t | test IC | test t | L1→L2→L5 | 过线 |

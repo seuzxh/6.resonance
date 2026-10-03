@@ -1,0 +1,421 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "共振策略：现行运行与研究边界",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/diagrams/current-plan-20261003/current-workflow.html",
+    "repository": {
+      "url": "git@github.com:seuzxh/6.resonance.git",
+      "revision": "6bb1467a3e7abad30586214ef61cdc8059408f67",
+      "link_mode": "local-only"
+    }
+  },
+  "lanes": [
+    {
+      "id": "daily",
+      "label": "每日纸面运行"
+    },
+    {
+      "id": "exception",
+      "label": "条件与展示",
+      "variant": "exception"
+    },
+    {
+      "id": "research",
+      "label": "研究流程 · 已停止探索"
+    }
+  ],
+  "mainPath": [
+    "run",
+    "clock",
+    "dailydata",
+    "minutes",
+    "replay",
+    "ledger"
+  ],
+  "nodes": [
+    {
+      "id": "run",
+      "lane": "daily",
+      "col": 0,
+      "type": "external",
+      "label": "每日运行入口",
+      "sublabel": "本次未恢复同步",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "docs/spec/current-plan.md",
+          "line": 112,
+          "end_line": 118
+        }
+      ]
+    },
+    {
+      "id": "clock",
+      "lane": "daily",
+      "col": 1,
+      "type": "security",
+      "label": "收盘时间检查",
+      "sublabel": "当天须满15:05",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "ops/signal_daily.py",
+          "line": 214,
+          "end_line": 222
+        }
+      ]
+    },
+    {
+      "id": "dailydata",
+      "lane": "daily",
+      "col": 2,
+      "type": "database",
+      "label": "补齐日线缓存",
+      "sublabel": "重复记录保留新值",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "ops/signal_daily.py",
+          "line": 62,
+          "end_line": 103
+        }
+      ]
+    },
+    {
+      "id": "minutes",
+      "lane": "daily",
+      "col": 3,
+      "type": "database",
+      "label": "补采分钟行情",
+      "sublabel": "按候选与领先指数",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "ops/signal_daily.py",
+          "line": 106,
+          "end_line": 160
+        }
+      ]
+    },
+    {
+      "id": "replay",
+      "lane": "daily",
+      "col": 4,
+      "type": "backend",
+      "label": "冻结配置重放",
+      "sublabel": "三锚主轨与对照",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "ops/signal_daily.py",
+          "line": 178,
+          "end_line": 190
+        }
+      ]
+    },
+    {
+      "id": "ledger",
+      "lane": "daily",
+      "col": 5,
+      "type": "database",
+      "label": "保存纸面账户",
+      "sublabel": "交易与净值落盘",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "ops/signal_daily.py",
+          "line": 191,
+          "end_line": 195
+        }
+      ]
+    },
+    {
+      "id": "halt",
+      "lane": "exception",
+      "col": 1,
+      "type": "security",
+      "label": "拒绝盘中运行",
+      "sublabel": "避免写入未收盘行情",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "ops/signal_daily.py",
+          "line": 214,
+          "end_line": 220
+        }
+      ]
+    },
+    {
+      "id": "fallback",
+      "lane": "exception",
+      "col": 3,
+      "type": "security",
+      "label": "分钟不足则降级",
+      "sublabel": "日线原序并计数",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "resonance/v3.py",
+          "line": 428,
+          "end_line": 460
+        }
+      ]
+    },
+    {
+      "id": "publish",
+      "lane": "exception",
+      "col": 5,
+      "type": "frontend",
+      "label": "站点展示",
+      "sublabel": "失败保留已存账户",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "ops/signal_daily.py",
+          "line": 243,
+          "end_line": 252
+        }
+      ]
+    },
+    {
+      "id": "register",
+      "lane": "research",
+      "col": 0,
+      "type": "external",
+      "label": "预注册假设",
+      "sublabel": "先冻结比较与判据",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "docs/research/experiment-playbook.md",
+          "line": 1,
+          "end_line": 23
+        }
+      ]
+    },
+    {
+      "id": "bridge",
+      "lane": "research",
+      "col": 1,
+      "type": "database",
+      "label": "冻结研究切片",
+      "sublabel": "截止2026-09-18",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "docs/spec/current-plan.md",
+          "line": 98,
+          "end_line": 109
+        }
+      ]
+    },
+    {
+      "id": "learn",
+      "lane": "research",
+      "col": 2,
+      "type": "backend",
+      "label": "滚动训练预测",
+      "sublabel": "标签成熟边界隔离",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "docs/research/qlib-decision-learning.md",
+          "line": 85,
+          "end_line": 102
+        }
+      ]
+    },
+    {
+      "id": "account",
+      "lane": "research",
+      "col": 3,
+      "type": "backend",
+      "label": "连续账户对照",
+      "sublabel": "成本与相位一起检查",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "docs/research/constituent-breadth.md",
+          "line": 118,
+          "end_line": 140
+        }
+      ]
+    },
+    {
+      "id": "assess",
+      "lane": "research",
+      "col": 4,
+      "type": "security",
+      "label": "完整采纳判据",
+      "sublabel": "收益胜率风险与邻域",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "docs/research/constituent-breadth.md",
+          "line": 31,
+          "end_line": 39
+        }
+      ]
+    },
+    {
+      "id": "closed",
+      "lane": "research",
+      "col": 5,
+      "type": "database",
+      "label": "已收口留证",
+      "sublabel": "没有生产晋升",
+      "width": 150,
+      "height": 62,
+      "sources": [
+        {
+          "path": "docs/research/constituent-breadth.md",
+          "line": 145,
+          "end_line": 161
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "run-clock",
+      "from": "run",
+      "to": "clock",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "clock-dailydata",
+      "from": "clock",
+      "to": "dailydata",
+      "label": "通过",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "dailydata-minutes",
+      "from": "dailydata",
+      "to": "minutes",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "minutes-replay",
+      "from": "minutes",
+      "to": "replay",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "replay-ledger",
+      "from": "replay",
+      "to": "ledger",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "clock-halt",
+      "from": "clock",
+      "to": "halt",
+      "label": "过早",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "replay-fallback",
+      "from": "replay",
+      "to": "fallback",
+      "label": "不足",
+      "variant": "security",
+      "role": "branch"
+    },
+    {
+      "id": "ledger-publish",
+      "from": "ledger",
+      "to": "publish",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "register-bridge",
+      "from": "register",
+      "to": "bridge",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "bridge-learn",
+      "from": "bridge",
+      "to": "learn",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "learn-account",
+      "from": "learn",
+      "to": "account",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "account-assess",
+      "from": "account",
+      "to": "assess",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "assess-closed",
+      "from": "assess",
+      "to": "closed",
+      "label": "未过线",
+      "variant": "dashed",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "原策略决策",
+      "items": [
+        "池内10日动量选领先，3日收益为正才有候选",
+        "日线上涨共振前五名，再按24根分钟行情重排",
+        "单仓持有：止损优先，届期按最终前三名续持"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "执行边界",
+      "items": [
+        "收盘生成信号，下一交易日开盘执行",
+        "分钟不足按原规则降级；个别概念缺失先剔除",
+        "重放内部先形成最终榜，再生成持仓指令"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "研究与生产分开",
+      "items": [
+        "研究双锚：深证成指与中证1000，尚未晋升生产",
+        "成分比例仅保留观察，机器学习未通过完整门槛",
+        "下一轮仅整理开仓、空仓与仓位恢复方向"
+      ]
+    }
+  ]
+}
