@@ -1,8 +1,9 @@
 """预注册成员时点和上涨比例；conda resonance。"""
 from pathlib import Path
+import os
 import numpy as np
 import pandas as pd
-OUT=Path('outputs/constituent_breadth')
+OUT=Path(os.environ.get('RESONANCE_BREADTH_OUT','outputs/constituent_breadth'))
 BASE_FEATURES=['ret5','ret20','relative10','vol20','dd10','anchor3','anchor10','anchor_dd10','score','sync','capture','score_gap']
 
 
@@ -36,3 +37,12 @@ def valid_stock_returns(close,factor,volume):
 def without_best_month(month_by_phase):
     a=np.asarray(month_by_phase,float)
     return float(np.median(a.sum(axis=0)-a.max(axis=0)))
+
+
+def shrunken_breadth_pair(returns,keep,strength=20,min_coverage=.9):
+    a=np.asarray(returns,float)[:,np.asarray(keep,bool)]
+    if a.shape[1]==0 or a.shape[0]!=5:return np.nan,np.nan
+    valid=np.isfinite(a);n=valid.sum(axis=1)
+    if (n/a.shape[1]<min_coverage).any():return np.nan,np.nan
+    ratio=(((a>0)&valid).sum(axis=1)+strength/2)/(n+strength)
+    return float(ratio[-1]),float(ratio.mean())

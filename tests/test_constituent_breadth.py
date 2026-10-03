@@ -48,3 +48,12 @@ def test_best_month_removal_preserves_each_phase_ledger():
     for i in range(5):a[i,i]=a[i,(i+1)%5]=-.1
     assert np.median(a,axis=1).sum()-np.median(a,axis=1).max()>0
     assert np.isclose(without_best_month(a),-.16)
+
+
+def test_neutral_shrinkage_small_groups_and_missing_prices():
+    from research.constituent_breadth_common import shrunken_breadth_pair
+    r=np.ones((5,1))*.02
+    assert shrunken_breadth_pair(r,[True])==(11/21,11/21)
+    assert np.isnan(shrunken_breadth_pair(r,[False])[0])
+    r[0,0]=np.nan
+    assert np.isnan(shrunken_breadth_pair(r,[True])[0])
