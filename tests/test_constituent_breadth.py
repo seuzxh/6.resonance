@@ -29,3 +29,22 @@ def test_too_few_members_and_prior_day_missing():
 def test_whole_day_mask_ignores_unknown_labels():
     x=pd.DataFrame({'date':[1,1,2,2], 'a':[.1,np.nan,.2,.3], 'target':[1.,2.,np.nan,np.nan]})
     assert all_candidates_valid(x,['a']).tolist()==[False,False,True,True]
+
+
+def test_returns_reject_invalid_factor_suspension_and_extremes():
+    from research.constituent_breadth_common import valid_stock_returns
+    close=np.array([10.,11.,11.,11.,20.,21.])
+    factor=np.array([1.,1.,1.,0.,1.,1.])
+    volume=np.array([10.,10.,0.,10.,10.,10.])
+    r=valid_stock_returns(close,factor,volume)
+    assert np.isclose(r[1],.1)
+    assert np.isnan(r[[0,2,3,4]]).all()
+    assert np.isclose(r[5],.05)
+
+
+def test_best_month_removal_preserves_each_phase_ledger():
+    from research.constituent_breadth_common import without_best_month
+    a=np.full((5,5),.02)
+    for i in range(5):a[i,i]=a[i,(i+1)%5]=-.1
+    assert np.median(a,axis=1).sum()-np.median(a,axis=1).max()>0
+    assert np.isclose(without_best_month(a),-.16)

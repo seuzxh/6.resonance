@@ -4,7 +4,7 @@ import sys,json,hashlib
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import numpy as np
 import pandas as pd
-from research.constituent_breadth_common import OUT,BASE_FEATURES,breadth_pair,all_candidates_valid
+from research.constituent_breadth_common import OUT,BASE_FEATURES,breadth_pair,all_candidates_valid,valid_stock_returns
 from research.constituent_breadth_inputs import digest
 ROOT=Path('/home/zxh/.qlib/qlib_data/cn_data')
 
@@ -38,7 +38,8 @@ def main():
   usable=valid[1:]&valid[:-1]&np.isfinite(r)&(np.abs(r)<=.35)
   # First local date is not treated as an actual listing date; only a data boundary.
   if c in instruments:usable &= cal[1:]>=instruments[c]
-  rets[1:,j]=np.where(usable,r,np.nan)
+  rets[:,j]=valid_stock_returns(close,factor,volume)
+  if c in instruments:rets[cal<instruments[c],j]=np.nan
   quality.append({'code':c,'valid_return_days':int(usable.sum()),'extreme_return_days':int((np.abs(r)>.35).sum()),'local_start':str(instruments.get(c,pd.NaT))})
   if j%1000==0:print('stock loaded',j,'/',len(codes),flush=True)
  np.save(OUT/'stock_returns.npy',rets);pd.DataFrame({'code':codes}).to_csv(OUT/'stock_codes.csv',index=False);pd.DataFrame(quality).to_csv(OUT/'stock_quality.csv',index=False)

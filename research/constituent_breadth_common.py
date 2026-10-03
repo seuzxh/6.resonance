@@ -23,3 +23,16 @@ def breadth_pair(returns,keep,min_members=20,min_coverage=.9):
 def all_candidates_valid(frame,features):
     mask=pd.Series(np.isfinite(frame[features].to_numpy(float)).all(axis=1),index=frame.index)
     return mask.groupby(frame.date).transform('all') & frame.groupby('date').date.transform('size').ge(2)
+
+
+def valid_stock_returns(close,factor,volume):
+    close=np.asarray(close,float);factor=np.asarray(factor,float);volume=np.asarray(volume,float)
+    valid=np.isfinite(close)&(close>0)&np.isfinite(factor)&(factor>0)&np.isfinite(volume)&(volume>0)
+    with np.errstate(divide='ignore',invalid='ignore'):r=close[1:]/close[:-1]-1
+    usable=valid[1:]&valid[:-1]&np.isfinite(r)&(np.abs(r)<=.35)
+    return np.r_[np.nan,np.where(usable,r,np.nan)]
+
+
+def without_best_month(month_by_phase):
+    a=np.asarray(month_by_phase,float)
+    return float(np.median(a.sum(axis=0)-a.max(axis=0)))
