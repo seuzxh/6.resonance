@@ -20,7 +20,8 @@
 通过预注册跨阶段判据，危险期参与控制方向停止，不生成新策略回测。设计见
 [exposure-danger-diagnostic-plan](../docs/research/exposure-danger-diagnostic-plan.md)。完整实施与
 测试快照为 `7f32f39`，一次性脚本及配套测试已按纪律清理；本地数据表保留在
-`outputs/exposure_danger_diagnostic/`。
+`outputs/exposure_danger_diagnostic/`。整个开仓、空仓与仓位恢复方向的最终结论、适用信息与重开条件见
+[exposure-research-closeout](../docs/research/exposure-research-closeout.md)。
 
 2026-10-04风险暴露环节归因阶段一已完成：只读既有双锚账单
 与主仓日线，重构完整持仓段并定位亏损环节；生产、现行样本外评价与阶段二

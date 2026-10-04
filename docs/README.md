@@ -33,6 +33,7 @@
 - [exposure-roadmap.md](research/exposure-roadmap.md) — 下一轮开仓、空仓与仓位恢复方向：既有负结论、机制差异、账户前置要求和待冻结判据；阶段一归因已执行，阶段二未开跑。
 - [exposure-attribution-plan.md](research/exposure-attribution-plan.md) — 2026-10-04风险暴露环节归因阶段一：只读双锚连续账单，定位入场来源与退出原因中的亏损集中环节；不产生采纳结论。
 - [exposure-danger-diagnostic-plan.md](research/exposure-danger-diagnostic-plan.md) — 2026-10-04阶段二A危险状态诊断：只用信号日及以前的日线状态解释排名换仓后的不利退出差异；九个特征均未通过，危险期参与控制停止。
+- [exposure-research-closeout.md](research/exposure-research-closeout.md) — 2026-10-04开仓、空仓与仓位恢复研究最终收口：汇总阶段一与阶段二A结论、适用信息、复现证据链和重开条件。
 
 - [constituent-breadth.md](research/constituent-breadth.md) — 双锚独立学习、历史成员核验、中性收缩与上市边界隔离复验；包含数据资格及实际学习覆盖限制。
 
