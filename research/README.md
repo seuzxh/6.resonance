@@ -18,8 +18,9 @@
 2026-10-04风险暴露环节归因阶段一已完成：只读既有双锚账单
 与主仓日线，重构完整持仓段并定位亏损环节；生产、现行样本外评价与阶段二
 仓位控制均未改变或开跑。设计与结果见
-[exposure-attribution-plan](../docs/research/exposure-attribution-plan.md)，实施脚本为
-`exposure_attribution_run.py`。
+[exposure-attribution-plan](../docs/research/exposure-attribution-plan.md)。完整实施与测试
+快照为 `d3d5ddf`，一次性脚本及配套测试已按纪律清理；本地数据表保留在
+`outputs/exposure_attribution/`。
 
 2026-10-03成分上涨比例与独立双锚学习研究已收口，共5670次账户回放
 （含成本、窗口、相位组合与重复验证），没有方案通过完整采纳判据。

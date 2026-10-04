@@ -42,7 +42,10 @@
 
 ## 五、复现
 
+复现时先从Git快照`d3d5ddf`提取`research/exposure_attribution_run.py`与`tests/test_exposure_attribution.py`，在本仓主数据副本可见的位置执行：
+
 ```bash
+conda run -n resonance python -m pytest -q tests/test_exposure_attribution.py
 conda run --no-capture-output -n resonance python research/exposure_attribution_run.py
 ```
 
