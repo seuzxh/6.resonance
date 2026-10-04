@@ -32,3 +32,14 @@
 ## 三、边界
 
 所有特征均使用执行日前一个交易日的收盘及以前数据；分位阈值来自主样本全体，仅用于描述，不是交易阈值。概念指数不可直接交易，成本是统一压力假设，概念目录存在幸存者偏差。第3相位之外的事件只做重合审计，不作为独立样本计入检验。
+
+## 四、复现
+
+复现时先从Git快照`7f32f39`提取`research/exposure_danger_diagnostic_run.py`与`tests/test_exposure_danger_diagnostic.py`，并保留阶段一本地数据表后执行：
+
+```bash
+conda run -n resonance python -m pytest -q tests/test_exposure_danger_diagnostic.py
+conda run --no-capture-output -n resonance python research/exposure_danger_diagnostic_run.py
+```
+
+输入哈希见`data_audit.json`（输入文件哈希与缺失率）；事件明细见`events.csv`（逐笔换仓特征表），分档汇总见`bin_summary.csv`（特征分档表），判据核对见`candidate_tests.csv`（候选判据表）。

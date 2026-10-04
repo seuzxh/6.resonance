@@ -18,7 +18,9 @@
 2026-10-04阶段二A危险状态诊断已完成：固定主窗口第3相位的93笔排名换仓
 事件，只用信号日及以前的日线特征解释后续不利退出差异；九个特征均未
 通过预注册跨阶段判据，危险期参与控制方向停止，不生成新策略回测。设计见
-[exposure-danger-diagnostic-plan](../docs/research/exposure-danger-diagnostic-plan.md)。
+[exposure-danger-diagnostic-plan](../docs/research/exposure-danger-diagnostic-plan.md)。完整实施与
+测试快照为 `7f32f39`，一次性脚本及配套测试已按纪律清理；本地数据表保留在
+`outputs/exposure_danger_diagnostic/`。
 
 2026-10-04风险暴露环节归因阶段一已完成：只读既有双锚账单
 与主仓日线，重构完整持仓段并定位亏损环节；生产、现行样本外评价与阶段二
