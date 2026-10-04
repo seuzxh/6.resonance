@@ -30,7 +30,8 @@
 
 ## research/ 寻优研究（历史过程——写侧）
 
-- [exposure-roadmap.md](research/exposure-roadmap.md) — 下一轮开仓、空仓与仓位恢复方向：既有负结论、机制差异、账户前置要求和待冻结判据；仅整理，未开跑。
+- [exposure-roadmap.md](research/exposure-roadmap.md) — 下一轮开仓、空仓与仓位恢复方向：既有负结论、机制差异、账户前置要求和待冻结判据；阶段一归因已执行，阶段二未开跑。
+- [exposure-attribution-plan.md](research/exposure-attribution-plan.md) — 2026-10-04风险暴露环节归因阶段一：只读双锚连续账单，定位入场来源与退出原因中的亏损集中环节；不产生采纳结论。
 
 - [constituent-breadth.md](research/constituent-breadth.md) — 双锚独立学习、历史成员核验、中性收缩与上市边界隔离复验；包含数据资格及实际学习覆盖限制。
 
