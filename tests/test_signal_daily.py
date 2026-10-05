@@ -41,6 +41,13 @@ def test_update_daily_overwrites_stale_and_fills_laggard(tmp_path, monkeypatch):
     assert len(out) == 4, "不应产生重复行（AAA/BBB × 09-22/09-23）"
 
 
+def test_production_parallel_tracks_avoid_retired_codes():
+    assert sd.TRACKS["D3"] == ["399001.SZ", "399303.SZ", "000688.SH"]
+    assert sd.TRACKS["D2"] == ["399001.SZ", "000852.SH"]
+    sd.config.assert_no_retired(sd.TRACKS["D3"] + sd.TRACKS["D2"],
+                                context="生产并行轨")
+
+
 def test_topup_requires_bars_on_the_exact_day(tmp_path, monkeypatch):
     f = tmp_path / "minute5_bars.parquet"
     old = pd.DataFrame({"symbol": ["C1"] * 3 + ["LDR"] * 3,

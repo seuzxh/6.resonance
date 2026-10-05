@@ -6,7 +6,7 @@
 起点重新计数；旧收盘口径纸面产物归档于 outputs/oos_archive_close/。
 
 用法（每日收盘后）：
-    conda run -n resonance python ops/signal_daily.py            # 双轨（9池+13池）
+    conda run -n resonance python ops/signal_daily.py            # 全部正式与生产并行轨
     conda run -n resonance python ops/signal_daily.py --date 2026-09-23
     conda run -n resonance python ops/signal_daily.py --track A9   # 单轨
 
@@ -42,8 +42,10 @@ POOL13 = ["883957.TI", "700050.TI", "000680.SH", "399006.SZ", "000688.SH", "0000
           "899050.BJ", "932000.CSI", "000300.SH", "000905.SH", "000852.SH", "399303.SZ",
           "000015.SH", "000001.SH", "399001.SZ"]
 # C1 = 固定深证成指锚（单锚冠军对照）；D3 = V4.3 生产口径（三锚动选，
-# docs/spec/v43-best-plan.md，2026-09-23 用户决策）
+# docs/spec/v43-best-plan.md，2026-09-23 用户决策）；D2 = 用户 2026-10-05
+# 指令加入的生产并行纸面轨（深证成指+中证1000，不改变正式四轨判据）。
 TRACKS = {"D3": list(config.V43_ANCHOR_POOL),
+          "D2": ["399001.SZ", "000852.SH"],
           "A9": list(config.V41_BROAD_POOL), "B13": POOL13, "C1": ["399001.SZ"],
           # 分净值对照轨（站点净值页用，参数同冻结值，纯加法不影响预注册四轨）
           "G2": ["399303.SZ"], "K5": ["000688.SH"]}
@@ -175,6 +177,67 @@ def load_wide():
     return close_all, open_all, concepts
 
 
+def _serial_pending(pending: dict | None) -> dict | None:
+    """把窗口末指令转换为 JSON 安全数据；不改变引擎成交语义。"""
+    if not pending:
+        return None
+    out = dict(pending)
+    if "signal_date" in out:
+        out["signal_date"] = str(pd.Timestamp(out["signal_date"]).date())
+    return out
+
+
+def build_track_snapshot(bt: V3Backtester, out: dict, names: dict[str, str]) -> dict:
+    """生成生产快照：持仓、仓位、滞后指令、锚筛选与最终候选榜。"""
+    date = out["nav_curve"].index[-1]
+    i = bt.close.index.get_loc(date)
+    daily = bt.sig.ranking(i).head(FROZEN.daily_top)
+    final = bt._final_ranking(i, date, {})
+    final_rank = {c: j + 1 for j, c in enumerate(final["concept"])}
+
+    candidates = []
+    for _, row in daily.iterrows():
+        code = str(row["concept"])
+        candidates.append({
+            "code": code, "name": names.get(code, code),
+            "daily_score": round(float(row["score"]), 6),
+            "final_rank": final_rank.get(code),
+            "minute_score": (round(float(final.loc[final["concept"] == code, "score"].iloc[0]), 6)
+                             if code in final_rank else None),
+        })
+
+    anchors = []
+    for code in bt.broad:
+        series = bt.close[code].iloc[: i + 1]
+        anchors.append({
+            "code": code, "name": names.get(code, code),
+            "return_10d": round(float(series.iloc[-1] / series.iloc[-11] - 1.0), 6),
+            "return_3d": round(float(series.iloc[-1] / series.iloc[-4] - 1.0), 6),
+            "selected": bool(bt.sig.has_leader[i]
+                             and bt.broad[bt.sig.leader_idx[i]] == code),
+        })
+
+    holding = out["holdings"]["holding"].iloc[-1]
+    pending = _serial_pending(out.get("pending"))
+    return {
+        "signal_date": str(date.date()),
+        "execution": "T+1 开盘",
+        "holding": holding,
+        "holding_name": names.get(holding, holding) if holding else None,
+        "position_weight": 1.0 if holding else 0.0,
+        "pending": pending,
+        "leader": (bt.broad[bt.sig.leader_idx[i]] if bt.sig.has_leader[i] else None),
+        "gate_pass": bool(bt.sig.gate[i]),
+        "half_life": float(bt.sig.hl[i]),
+        "anchors": anchors,
+        "candidates": candidates,
+        "stats": {k: int(out["stats"].get(k, 0)) for k in (
+            "entries", "switches", "exits", "stop_count", "flat_days",
+            "minute_layer_days", "minute_fallback_leader",
+            "minute_excluded", "minute_fallback_sparse")},
+    }
+
+
 def replay_track(track: str, pool: list[str], end_date: str) -> dict:
     close_all, open_all, concepts = load_wide()
     m5 = pd.read_parquet(config.CACHE_DIR / "minute5_bars.parquet")
@@ -188,6 +251,11 @@ def replay_track(track: str, pool: list[str], end_date: str) -> dict:
     bt = V3Backtester(close_all, concepts, broad_codes=pool, params=FROZEN,
                       minute_bars_provider=prov, open_all=open_all)
     out = bt.run(OOS_START, end_date)
+    catalog = pd.read_csv(config.DATA_DIR / "concept_catalog.csv")
+    names = dict(zip(catalog["code"], catalog["name"]))
+    names.update(config.V43_ANCHOR_POOL)
+    names.update({"000852.SH": "中证1000"})
+    out["snapshot"] = build_track_snapshot(bt, out, names)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     trades = out["trades"]
     trades.to_csv(OUT_DIR / f"trades_{track}.csv", index=False)
@@ -205,6 +273,8 @@ def main() -> int:
     ap.add_argument("--track", choices=list(TRACKS), default=None)
     ap.add_argument("--oos-start", default=None,
                     help="OOS 起点覆盖（仅限机制测试/起点顺延；正式实验用默认 2026-09-29 = V4.4 重启起点）")
+    ap.add_argument("--no-publish", action="store_true",
+                    help="只写账户与快照，不发布站点（补跑和诊断用）")
     args = ap.parse_args()
 
     global OOS_START
@@ -220,10 +290,12 @@ def main() -> int:
         return 2
 
     update_daily(args.date)
+    snapshots: dict[str, dict] = {}
     for track, pool in TRACKS.items():
         if args.track and track != args.track:
             continue
         out = replay_track(track, pool, args.date)
+        snapshots[track] = out["snapshot"]
         trades = out["trades"]
         nav = out["nav_curve"]
         st = perf_stats(nav)
@@ -240,7 +312,21 @@ def main() -> int:
         else:
             print("尚无交易动作（空仓等待信号）")
         print(f"[OK] 落盘 {OUT_DIR}/trades_{track}.csv / nav_{track}.csv")
+    if {"D3", "D2"}.issubset(snapshots):
+        production = {
+            "version": 1,
+            "generated_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "oos_start": OOS_START,
+            "tracks": {tr: snapshots[tr] for tr in ("D3", "D2")},
+        }
+        (OUT_DIR / "production_snapshot.json").write_text(
+            json.dumps(production, ensure_ascii=False, indent=2), encoding="utf-8")
+    else:
+        print("[snapshot] 单轨补跑不覆盖生产快照")
     # 发布层：产物 → site/public/data/*.json → git push（失败不影响已落盘信号）
+    if args.no_publish:
+        print("[publish] 已按 --no-publish 跳过")
+        return 0
     try:
         from ops.publish_site import main as publish_main
         rc = publish_main([])

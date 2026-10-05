@@ -4,15 +4,18 @@
 数据源同花顺 iFinD REST；迁移自 ChatGPT Codex 会话（2026-09-17/18），
 起源上下文见 [docs/research/gpt-session-summary.md](docs/research/gpt-session-summary.md)。
 
-## 当前方案（2026-10-03核对）
+## 当前方案（2026-10-05核对）
 
 先读[当前详细方案](docs/spec/current-plan.md)，再看[现有流程图](docs/diagrams/current-plan-20261003/current-workflow.html)。
 
-- 生产冻结配置是深证成指、国证2000、科创50三锚动选，采用V4.4次日开盘执行。
+- 生产主轨D3是深证成指、国证2000、科创50三锚动选，采用V4.4次日开盘执行。
+- 生产并行纸面轨D2是深证成指、中证1000双锚动选；两轨参数完全相同。
 - 日线共振窗口为10日，前5名经最近24根五分钟行情重排；最终前三名用于单仓续持缓冲。
-- 研究主基线是深证成指与中证1000双锚；简单成分比例只保留观察，机器学习增强未通过完整采纳要求。
-- 用户已停止本轮持续自主探索。生产参数和样本外评价保持冻结，本次未恢复每日同步。
-- 原记录为每日同步暂停；外部调度实时状态未在本次核验。正式四轨为D3（三锚主轨）、A9（九池对照）、B13（历史十三池名义对照）、C1（深证成指单锚）；其余两条仅作展示对照。
+- 简单成分比例只保留观察，机器学习增强未通过完整采纳要求。
+- 用户已停止本轮持续自主探索。生产参数和样本外评价保持冻结。
+- 手动账单已补至2026-09-30；外部调度实时状态未在本次核验。正式四轨为D3（三锚主轨）、A9（九池对照）、B13（历史十三池名义对照）、C1（深证成指单锚）；D2双锚生产并行纸面轨、G2国证2000单锚与K5科创50单锚展示轨不是正式评价轨。
+
+生产部署、盘中监控与复盘见[生产并行部署与复盘方案](docs/ops/production-deployment-and-review.md)。
 
 概念指数不可直接交易，成本是统一压力假设；存活目录有幸存者偏差，历史研究按样本内上界解释。
 下一轮方向见[开仓、空仓与仓位恢复路线](docs/research/exposure-roadmap.md)，本次只整理、未开跑。
@@ -32,7 +35,8 @@
 ```bash
 conda run -n resonance python -m pytest -q          # 离线测试（全 mock）
 conda run -n resonance python ops/probe.py         # iFinD 冒烟（需网络+凭证）
-conda run -n resonance python ops/signal_daily.py  # 每日 OOS runner（D3 主轨）
+conda run -n resonance python ops/signal_daily.py  # 每日样本外（OOS）runner（运行器，D3主轨）
+conda run -n resonance python ops/audit_agent.py  # 凌晨生产审计智能体（只读复盘）
 conda run -n resonance python ops/validate_data.py      # 数据体检
 conda run -n resonance python ops/collect.py            # 日线采集（断点续传）
 conda run -n resonance python ops/collect_minute5.py    # 5min 采集（需求矩阵裁剪）

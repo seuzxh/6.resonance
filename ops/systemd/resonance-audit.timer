@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Resonance production audit agent every night
+
+[Timer]
+OnCalendar=*-*-* 00:30:00 Asia/Shanghai
+Persistent=true
+Unit=resonance-audit.service
+
+[Install]
+WantedBy=timers.target

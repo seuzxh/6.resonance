@@ -7,6 +7,7 @@ import TabBar from './components/TabBar.vue'
 import PhaseStrip from './components/PhaseStrip.vue'
 import RecentFeed from './components/RecentFeed.vue'
 import NavChart from './components/NavChart.vue'
+import ProductionBoard from './components/ProductionBoard.vue'
 import SignalTable from './components/SignalTable.vue'
 import ArchiveList from './components/ArchiveList.vue'
 import HomeSide from './components/HomeSide.vue'
@@ -36,6 +37,7 @@ export default {
     app.component('PhaseStrip', PhaseStrip)
     app.component('RecentFeed', RecentFeed)
     app.component('NavChart', NavChart)
+    app.component('ProductionBoard', ProductionBoard)
     app.component('SignalTable', SignalTable)
     app.component('ArchiveList', ArchiveList)
     app.component('HomeSide', HomeSide)

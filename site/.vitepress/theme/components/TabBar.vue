@@ -10,6 +10,7 @@ import { useRoute } from 'vitepress'
 const route = useRoute()
 const tabs = [
   { text: '首页', link: '/' },
+  { text: '生产', link: '/production/' },
   { text: '净值', link: '/nav/' },
   { text: '信号', link: '/signals/' },
   { text: '档案', link: '/archive/' },

@@ -30,15 +30,17 @@ OUT = config.OUTPUTS_DIR / "oos"
 SITE_DATA = Path(__file__).resolve().parents[1] / "site" / "public" / "data"
 PUBLISH_LAG = 0                     # 实时公开（2026-09-25 用户反馈信号不可见，弃 T-1）
 NAV_START = "2026-01-01"            # 展示净值起点（样本内+样本外连续，图上标注 OOS 起点）
-SHOW_TRACKS = ("D3", "C1", "G2", "K5")   # 站点展示轨（D3 生产 + 三锚；C1=深证锚，展示名统一用锚名）
-NAV_TRACKS = ("D3", "C1", "G2", "K5")  # 进净值图的轨（G2/K5 为三锚分净值对照）
+SHOW_TRACKS = ("D3", "D2", "C1", "G2", "K5")  # 生产并行 + 对照轨
+NAV_TRACKS = ("D3", "D2", "C1", "G2", "K5")   # 进净值图的轨
 TRACK_NAMES = {
     "D3": "D3 三锚动选（生产）",
+    "D2": "D2 双锚动选（生产并行）",
     "C1": "深证成指锚",
     "G2": "国证 2000 锚",
     "K5": "科创 50 锚",
 }
 ANCHORS = config.V43_ANCHOR_POOL    # code -> name（三锚）
+D2_ANCHORS = {"399001.SZ": "深证成指", "000852.SH": "中证1000"}
 SPARK_DAYS = 30
 ACT = {"entry": "买", "exit": "卖", "stop": "卖", "switch": "换"}
 WD = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
@@ -48,6 +50,7 @@ def _names() -> dict[str, str]:
     cat = pd.read_csv(config.DATA_DIR / "concept_catalog.csv")
     m = dict(zip(cat["code"], cat["name"]))
     m.update(ANCHORS)
+    m.update(D2_ANCHORS)
     return m
 
 
@@ -93,11 +96,13 @@ def _trades(track: str) -> pd.DataFrame:
 
 
 def validate(today: pd.Timestamp) -> tuple[str, pd.Series]:
-    f = OUT / "nav_D3.csv"                     # 硬闸只看生产轨；其余轨缺官方文件走连续展示口径
-    if not f.exists():
-        raise SystemExit("[publish] 缺 nav_D3.csv（runner 未跑完？）拒绝发布")
+    for track in ("D3", "D2"):                 # 生产并行双轨都须完整
+        if not (OUT / f"nav_{track}.csv").exists():
+            raise SystemExit(f"[publish] 缺 nav_{track}.csv（runner 未跑完？）拒绝发布")
     navs = {tr: _nav(tr) for tr in NAV_TRACKS if (OUT / f"nav_{tr}.csv").exists()}
     d3 = navs["D3"]
+    if "D2" in navs and d3.index[-1] != navs["D2"].index[-1]:
+        raise SystemExit(f"[publish] D3/D2 末日不一致（{d3.index[-1].date()} vs {navs['D2'].index[-1].date()}）")
     if "C1" in navs and d3.index[-1] != navs["C1"].index[-1]:
         print(f"[publish] 警告：D3/C1 末日不一致（{d3.index[-1].date()} vs {navs['C1'].index[-1].date()}）")
     ret = d3.pct_change().abs()
@@ -273,14 +278,18 @@ def build_nav(names: dict, as_of: str) -> dict:
                 holdings.append([d, code, names.get(raw, raw)])
         series.append({"track": tr, "name": TRACK_NAMES[tr], "points": pts,
                        "events": events, "holdings": holdings})
-        if tr == "D3":
+        if tr in ("D3", "D2"):
             st = perf_stats(nav)
-            stats["D3"] = {"nav": round(float(nav.iloc[-1]), 4),
-                           "total_ret": round(float(st["total_return"]), 4),
-                           "max_dd": round(float(st["max_drawdown"]), 4)}
-    return {"version": 1, "start": NAV_START, "oos_start": "2026-09-22",
+            stats[tr] = {"nav": round(float(nav.iloc[-1]), 4),
+                         "total_ret": round(float(st["total_return"]), 4),
+                         "max_dd": round(float(st["max_drawdown"]), 4)}
+    snap_f = OUT / "production_snapshot.json"
+    snapshot = json.loads(snap_f.read_text(encoding="utf-8")) if snap_f.exists() else {}
+    screening = snapshot.get("tracks", {})
+    return {"version": 1, "start": NAV_START,
+            "oos_start": snapshot.get("oos_start", "2026-09-29"),
             "as_of": series[0]["points"][-1][0] if series else "",
-            "stats": stats, "series": series}
+            "stats": stats, "series": series, "screening": screening}
 
 
 def build_signals(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dict:

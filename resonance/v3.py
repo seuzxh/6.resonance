@@ -685,6 +685,8 @@ class V3Backtester:
             "stops": pd.DataFrame(stops),
             "stats": st,
             "params": p,
+            # 仅暴露窗口末日的滞后指令，供运行层展示；不参与净值与成交。
+            "pending": pending,
         }
 
 

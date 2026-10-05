@@ -9,7 +9,7 @@
 
 ## 当前入口
 
-- [当前详细方案](spec/current-plan.md)：生产三锚、研究双锚、候选边界与完整持仓规则。
+- [当前详细方案](spec/current-plan.md)：生产三锚、生产并行双锚、候选边界与完整持仓规则。
 - [当前流程图](diagrams/current-plan-20261003/current-workflow.html)：已按源码核对的每日运行、数据降级与研究停止流程。
 
 ## spec/ 冻结规格（产物层——两过程的唯一接口）
@@ -19,12 +19,16 @@
 - [v44-open-exec-plan.md](spec/v44-open-exec-plan.md) — V4.4 成交时点
   切换 T+1 开盘（2026-09-29 已实施）：语义定义、引擎
   改动记录、锚点重算与四轨评价重启。
+- [production-parallel-plan.md](spec/production-parallel-plan.md) — D3 三锚动选
+  与 D2 双锚动选的生产并行身份、冻结参数与人工裁决边界。
 
 ## ops/ 每日运行（推理过程）
 
 - [oos-validation-design.md](ops/oos-validation-design.md) — OOS 四轨 runner
   预注册设计：判据、运行纪律与三道数据防线。runner 为
   `ops/signal_daily.py`（15:05 后运行、OOS 起点无状态重放、幂等）。
+- [production-deployment-and-review.md](ops/production-deployment-and-review.md) —
+  D3/D2 生产并行部署、数据与盘中监控方案、凌晨审计智能体和复盘纪律。
 - [version-catalog.md](ops/version-catalog.md) — 版本目录：tag、口径要点、
   结论位置与归档记录（版本生命周期规则见 CLAUDE.md）。
 

@@ -2,7 +2,7 @@
   <div class="page-wrap" :class="{ compact: compact }">
     <h1 v-if="!compact" class="tt">净值</h1>
     <div v-else class="eyebrow">净值 · D3 整体 × 三锚分净值</div>
-    <p v-if="!compact" class="sub">D3 整体净值 × 三锚分净值（{{ nav.start || '2026-01-01' }} 起，样本内+样本外连续，金色竖线=样本外起点）。分净值＝固定某一锚运行的策略净值（起点=1）；深证成指锚即 C1 轨。样本外段：D3/C1 为官方 OOS 口径（空仓起步）；国证/科创锚为连续展示口径（官方 OOS 未含此二轨）。悬停/点按曲线看当日持仓与买卖。</p>
+    <p v-if="!compact" class="sub">D3 三锚动选与 D2 双锚动选并行净值（{{ nav.start || '2026-01-01' }} 起，样本内+样本外连续，金色竖线=样本外起点）。C1/G2/K5 是固定锚对照。样本外段：D3/D2/C1 为官方 OOS 口径（空仓起步）；国证/科创锚为连续展示口径。悬停/点按曲线看当日持仓与买卖。</p>
     <div class="stats panel">
       <div><span>最新净值</span><b class="mono">{{ st ? st.nav.toFixed(3) : '—' }}</b></div>
       <div><span>{{ (nav.start || '').slice(0, 4) }} 收益</span><b class="mono up">{{ st ? pct(st.total_ret) : '—' }}</b></div>
@@ -19,7 +19,8 @@
 import * as echarts from 'echarts'
 import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from 'vue'
 
-const COLORS: Record<string, string> = { D3: '#E8C06B', C1: '#7FA6D9', G2: '#5FB8C9', K5: '#9A7FD9' }
+const COLORS: Record<string, string> = { D3: '#E8C06B', D2: '#D98E5A', C1: '#7FA6D9', G2: '#5FB8C9', K5: '#9A7FD9' }
+const PRODUCTION = new Set(['D3', 'D2'])
 const RANGES = [
   { k: '1m', t: '近1月' }, { k: '3m', t: '近3月' }, { k: 'all', t: '全部' },
 ]
@@ -65,11 +66,11 @@ function render() {
     type: 'line' as const,
     showSymbol: false,
     data: sliced(s).map((p: any[]) => p[1]),
-    lineStyle: { width: s.track === 'D3' ? 3.2 : 1.6, color: COLORS[s.track] || '#93A7C0' },
-    ...(s.track !== 'D3' ? { lineStyle: { width: 1.6, color: COLORS[s.track] || '#93A7C0', opacity: 0.65 } } : {}),
+    lineStyle: { width: PRODUCTION.has(s.track) ? 3.0 : 1.6, color: COLORS[s.track] || '#93A7C0' },
+    ...(PRODUCTION.has(s.track) ? {} : { lineStyle: { width: 1.6, color: COLORS[s.track] || '#93A7C0', opacity: 0.65 } }),
     itemStyle: { color: COLORS[s.track] || '#93A7C0' },
     emphasis: { focus: 'series' as const },
-    ...(s.track === 'D3' && showOos ? {
+    ...(PRODUCTION.has(s.track) && showOos ? {
       markLine: {
         silent: true, symbol: 'none',
         lineStyle: { color: '#E8C06B', type: 'dashed', width: 1, opacity: 0.7 },
@@ -113,7 +114,7 @@ function render() {
           const tr = s.track
           const ev = evMap.get(`${tr}|${date}`)
           const h = holdMap.get(`${tr}|${date}`)
-          const nm = tr === 'D3' ? 'D3' : s.name.replace('锚', '').replace('三锚动选（生产）', '')
+          const nm = tr
           const lc = COLORS[tr] || '#93A7C0'
           if (ev) html += `<br/><span style="color:${lc}">●</span> <span style="color:#E8C06B">${nm} ${ev[0]}</span> ${ev[1]} ${ev[2]}`
           else if (h) html += `<br/><span style="color:${lc}">●</span> <span style="color:${lc}">${nm} 持有</span> ${h}`

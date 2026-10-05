@@ -1,10 +1,10 @@
 <template>
   <div class="side">
     <div class="panel sc">
-      <div class="eyebrow">净值速览 · D3 生产轨</div>
-      <div class="st"><span>最新净值</span><b class="mono">{{ nav ? nav.stats.D3.nav.toFixed(3) : '—' }}</b></div>
-      <div class="st"><span>{{ (nav && nav.start || '').slice(0, 4) || '2026' }} 收益</span><b class="mono up">{{ nav ? pct(nav.stats.D3.total_ret) : '—' }}</b></div>
-      <div class="st"><span>最大回撤</span><b class="mono down">{{ nav ? pct(nav.stats.D3.max_dd) : '—' }}</b></div>
+      <div class="eyebrow">净值速览 · 生产并行</div>
+      <div class="st"><span>D3 最新净值</span><b class="mono">{{ nav ? nav.stats.D3.nav.toFixed(3) : '—' }}</b></div>
+      <div class="st"><span>D2 最新净值</span><b class="mono">{{ nav ? nav.stats.D2.nav.toFixed(3) : '—' }}</b></div>
+      <div class="st"><span>D3 收益 / 回撤</span><b class="mono">{{ nav ? pct(nav.stats.D3.total_ret) : '—' }} / {{ nav ? pct(nav.stats.D3.max_dd) : '—' }}</b></div>
       <a class="lnk" :href="BASE + 'nav/'">完整净值曲线与口径 →</a>
     </div>
     <div class="panel sc">

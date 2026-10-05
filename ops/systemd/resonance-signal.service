@@ -1,0 +1,11 @@
+[Unit]
+Description=Resonance production daily runner (D3 + D2)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/zxh/projects/6.resonance
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/zxh/miniconda3/bin/conda run -n resonance python ops/signal_daily.py
+TimeoutStartSec=60min

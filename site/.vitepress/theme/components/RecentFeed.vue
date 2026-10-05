@@ -9,7 +9,7 @@
         <button class="head" :aria-expanded="!collapsed.has(i)" @click="toggle(i)">
           <span class="date"><b class="mono">{{ day.date.slice(5) }}</b><i class="wd">{{ day.wd }}</i></span>
           <span class="chips">
-            <span v-for="t in day.tracks.filter(t => t.track.startsWith('D3'))" :key="t.track"
+            <span v-for="t in day.tracks.filter(t => t.track.startsWith('D3') || t.track.startsWith('D2'))" :key="t.track"
                   class="chip mono" :class="t.ret >= 0 ? 'up' : 'down'">{{ t.track }} {{ pct(t.ret) }}</span>
           </span>
           <i class="caret" />

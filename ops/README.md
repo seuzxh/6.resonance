@@ -9,8 +9,11 @@
 
 - `signal_daily.py`：每日 OOS runner（增量采集 → 5min 自愈补齐 → OOS 起点
   无状态重放 → 信号/净值/审计落盘；尾部挂钩站点发布；15:05 后运行）。
-- `publish_site.py`：站点数据发布（recent / nav / signals / archive JSON →
+- `publish_site.py`：站点数据发布（recent / nav / signals / archive JSON（站点数据交换文件格式） →
   `site/public/data/`，支持 `--dry-run`）。
+- `audit_agent.py`：凌晨生产审计智能体（只读账单与快照，输出审计报告、
+  优化队列和站点 `audit.json`）。
+- `systemd/`：生产信号与凌晨审计的用户级 service/timer（systemd服务与定时器）模板。
 
 ## 数据层（采集与体检）
 

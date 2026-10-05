@@ -7,7 +7,7 @@
 ## 一、背景与病根
 
 概念分层（research 写侧 / ops 读侧 / spec 工件 / data 共用，见
-[docs/README.md](../../README.md)）是对的，但代码物理结构没有承载它：
+[docs/README.md](https://github.com/seuzxh/6.resonance/blob/master/docs/README.md)）是对的，但代码物理结构没有承载它：
 
 | 病灶 | 表现 |
 |---|---|

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Resonance production runner after market close
+
+[Timer]
+OnCalendar=Mon..Fri 15:10:00 Asia/Shanghai
+Persistent=true
+Unit=resonance-signal.service
+
+[Install]
+WantedBy=timers.target
