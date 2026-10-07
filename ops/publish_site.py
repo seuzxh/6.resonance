@@ -165,9 +165,11 @@ def build_recent(names: dict, closes: pd.DataFrame, cutoff: pd.Timestamp) -> dic
                      "tracks": tracks, "note": ""})
     last = days_idx[-1]
     aligned = sum(1 for a in days[-1]["anchors"] if a["state"] == "多")
+    # 新鲜度以数据可得末日为基准：休市期（节假日/周末）不因自然日历差误报滞后
+    health = "ok" if last >= closes.index.max() else "stale"
     return {"version": 1, "as_of": str(last.date()),
             "generated_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
-            "health": "ok" if (pd.Timestamp.now().normalize() - last).days <= 4 else "stale",
+            "health": health,
             "align": {"aligned": aligned, "total": len(days[-1]["anchors"])},
             "days": days[::-1]}   # 最新在前
 
