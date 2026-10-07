@@ -30,8 +30,10 @@ OUT = config.OUTPUTS_DIR / "oos"
 SITE_DATA = Path(__file__).resolve().parents[1] / "site" / "public" / "data"
 PUBLISH_LAG = 0                     # 实时公开（2026-09-25 用户反馈信号不可见，弃 T-1）
 NAV_START = "2026-01-01"            # 展示净值起点（样本内+样本外连续，图上标注 OOS 起点）
-SHOW_TRACKS = ("D3", "D2", "C1", "G2", "K5")  # 生产并行 + 对照轨
-NAV_TRACKS = ("D3", "D2", "C1", "G2", "K5")   # 进净值图的轨
+# 站点展示轨：只展示生产并行双轨（2026-10-08 用户指令撤下 C1/G2/K5 展示；
+# C1 仍是正式评价轨，账单照常落盘，仅不进站点）
+SHOW_TRACKS = ("D3", "D2")
+NAV_TRACKS = ("D3", "D2")   # 进净值图的轨
 TRACK_NAMES = {
     "D3": "D3 三锚动选（生产）",
     "D2": "D2 双锚动选（生产并行）",

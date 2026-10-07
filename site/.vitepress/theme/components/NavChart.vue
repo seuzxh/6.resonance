@@ -1,8 +1,8 @@
 <template>
   <div class="page-wrap" :class="{ compact: compact }">
     <h1 v-if="!compact" class="tt">净值</h1>
-    <div v-else class="eyebrow">净值 · D3 整体 × 三锚分净值</div>
-    <p v-if="!compact" class="sub">D3 三锚动选与 D2 双锚动选并行净值（{{ nav.start || '2026-01-01' }} 起，样本内+样本外连续，金色竖线=样本外起点）。C1/G2/K5 是固定锚对照。样本外段：D3/D2/C1 为官方 OOS 口径（空仓起步）；国证/科创锚为连续展示口径。悬停/点按曲线看当日持仓与买卖。</p>
+    <div v-else class="eyebrow">净值 · D3 × D2 生产并行</div>
+    <p v-if="!compact" class="sub">D3 三锚动选与 D2 双锚动选并行净值（{{ nav.start || '2026-01-01' }} 起，样本内+样本外连续，金色竖线=样本外起点）。样本外段为官方 OOS 口径（空仓起步）。悬停/点按曲线看当日持仓与买卖。</p>
     <div class="stats panel">
       <div><span>最新净值</span><b class="mono">{{ st ? st.nav.toFixed(3) : '—' }}</b></div>
       <div><span>{{ (nav.start || '').slice(0, 4) }} 收益</span><b class="mono up">{{ st ? pct(st.total_ret) : '—' }}</b></div>
