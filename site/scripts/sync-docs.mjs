@@ -1,4 +1,4 @@
-// docs/ → site/ 构建期同步（EdgeOne 与 GitHub Pages 双通道共用，
+// docs/ → site/ 构建期同步（GitHub Pages 通道使用，
 // 由 package.json 的 docs:dev / docs:build 前置调用；产物不入库）。
 //
 // 职责：
@@ -177,8 +177,7 @@ outline: false
 
 # 项目文档
 
-方法论文档与实验记录，构建期自动同步自仓库 \`docs/\` 目录（EdgeOne 与
-GitHub Pages 双通道同源）。
+方法论文档与实验记录，构建期自动同步自仓库 \`docs/\` 目录。
 
 ${groupsHtml}
 `

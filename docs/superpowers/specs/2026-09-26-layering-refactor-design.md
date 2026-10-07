@@ -128,7 +128,7 @@ FastAPI 视角下站点是第二组消费 router，同规则处理：
 | main 中 git add/commit/push | 留在薄入口（组装+调 service+部署触发） |
 
 不动：`site/` VitePress 前端（纯展示层，消费 public/data JSON，不属
-Python 分层）、Pages CI/EdgeOne 部署链路、四个 JSON 的格式。
+Python 分层）、Pages CI 部署链路、四个 JSON 的格式。
 
 ## 七、等价性验收（OOS 冻结期硬约束）
 

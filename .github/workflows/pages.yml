@@ -1,7 +1,7 @@
-# VitePress 站点 → GitHub Pages 部署（双轨备份通道，主通道 EdgeOne 不变）
+# VitePress 站点 → GitHub Pages 部署（唯一对外通道）
 # 产物结构：cleanUrls 平铺 html 重组为 dir/index.html（Pages 静态托管
 # 不支持 /nav/ → nav.html 重写）；base=/6.resonance/ 由 config.mts 读取
-# VITEPRESS_BASE 实现，EdgeOne 构建（不传该变量）输出与从前逐位一致。
+# VITEPRESS_BASE 实现。
 name: Deploy site to Pages
 on:
   push:
