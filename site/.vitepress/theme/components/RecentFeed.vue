@@ -26,7 +26,7 @@
           <div class="row"><span class="k">净值</span>
             <span class="v">
               <span v-for="t in day.tracks" :key="t.track" class="track">
-                <i>{{ t.track }}</i><em class="mono">{{ t.nav.toFixed(3) }} <b :class="t.ret >= 0 ? 'up' : 'down'">{{ pct(t.ret) }}</b></em>
+                <i><b class="dot" :class="t.track.startsWith('D3') ? 'd3' : 'd2'" />{{ t.track.split(' ')[0] }}</i><em class="mono">{{ t.nav.toFixed(3) }} <b :class="t.ret >= 0 ? 'up' : 'down'">{{ pct(t.ret) }}</b></em>
               </span>
             </span>
           </div>
@@ -38,7 +38,7 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-// 卡片头 chip 只显 D3（轨名以 D3 开头匹配）；明细净值行显示全部轨
+// 卡片头 chip 与明细净值行都只显 D3/D2 双轨；净值行用短代码+色点，全名由 chip 承载
 const d = ref<any>(null)
 const collapsed = ref(new Set<number>())   // 默认全部展开，点击卡片头可收起
 function toggle(i: number) {
@@ -76,9 +76,12 @@ const pct = (v: number | null) => v == null ? '—' : (v >= 0 ? '+' : '−') + M
 .sig b { color: var(--text-hi); }
 .sig .mono { font-weight: 600; }
 .none { color: var(--text-low); }
-.track { display: flex; align-items: baseline; gap: 8px; padding: 2px 0; }
-.track i { width: 40px; flex: none; font-style: normal; color: var(--text-mid); font-size: 12px; }
+.track { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.track i { display: inline-flex; align-items: center; gap: 5px; flex: none; font-style: normal; color: var(--text-mid); font-size: 12px; }
 .track em { margin-left: auto; font-style: normal; }
+.dot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.dot.d3 { background: #E8C06B; }
+.dot.d2 { background: #D98E5A; }
 .note { margin: 4px 0 8px; padding: 7px 9px; border-radius: 6px; background: var(--amber-dim); border: 1px solid rgba(233, 162, 59, 0.3); color: var(--amber); font-size: 12px; }
 
 @media (min-width: 900px) {
