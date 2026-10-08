@@ -6,12 +6,17 @@
 - 响应结构 ``tables: [{thscode, time: [...], table: {indicator: [vals]}}]``。
 
 凭证纪律（与 3.qlib_ifind_beta 相同）：
-- refresh_token 从环境变量 ``IFIND_REFRESH_TOKEN`` 或全局脚本源解析，绝不复制进本仓库；
+- refresh_token 从环境变量 ``IFIND_REFRESH_TOKEN`` / ``IFIND_REFRESH_TOKEN_2``
+  或全局脚本源解析，绝不复制进本仓库；
 - access_token 扁平缓存于 ``/home/zxh/qlib_data/.ifind_token``（多项目共享，避免重复刷新）；
+- 双账号切换（2026-10-09 加）：账号 id 从令牌尾缀 ``signs_<base64>`` 解出；
+  缓存黏性停留在上次可用账号；配额码（-4302 等）出现时自动切换下一个
+  账号重试一次，全部耗尽才抛错；refresh 失败（令牌过期）按序回退；
 - 仅 I/O，解析在 ``parse_history_data``。
 """
 from __future__ import annotations
 
+import base64
 import datetime as dt
 import json
 import re
@@ -25,8 +30,11 @@ from . import config
 
 CODES_PER_REQUEST = 10  # history_data >10 codes 会静默截断（项目3实战结论）
 
-# 配额类错误码：重试无意义，直接失败（对照 2.qlib_ifind_hot_concept 错误码表）
+# 配额类错误码：本账号重试无意义（对照 2.qlib_ifind_hot_concept 错误码表）；
+# 有备用账号时先切换重试，全部账号耗尽才失败
 _QUOTA_ERRORCODES = {"-4301", "-4302", "-4303", "-4317", "-4318", "-4321"}
+
+_TOKEN_ENV_VARS = ("IFIND_REFRESH_TOKEN", "IFIND_REFRESH_TOKEN_2")
 
 
 class IfindError(RuntimeError):
@@ -34,16 +42,25 @@ class IfindError(RuntimeError):
 
 
 def _errcode_ok(payload: dict) -> bool:
-    return str(payload.get("errorcode")) in ("0", "None", "", "nan", "None")
+    return str(payload.get("errorcode")) in ("0", "None", "", "nan")
 
 
 # --- refresh_token loader（镜像项目3 canonical 模式） ---
 def load_refresh_token() -> str:
+    """首个（主）refresh token——保持旧契约，单账号调用方无感。"""
+    return load_refresh_tokens()[0]
+
+
+def load_refresh_tokens() -> list[str]:
+    """按序去重加载全部 refresh token：env 优先，全局脚本源兜底
+    （systemd 用户服务不继承登录 shell 环境，必须能从文件解析）。"""
     import os
 
-    token = os.environ.get("IFIND_REFRESH_TOKEN", "").strip()
-    if token:
-        return token
+    tokens: list[str] = []
+    for var in _TOKEN_ENV_VARS:
+        v = os.environ.get(var, "").strip()
+        if v:
+            tokens.append(v)
     for path in config.REFRESH_TOKEN_PATHS:
         if not path.exists():
             continue
@@ -51,13 +68,39 @@ def load_refresh_token() -> str:
             stripped = line.strip()
             if stripped.startswith("export "):
                 stripped = stripped[len("export "):].strip()
-            if stripped.startswith("IFIND_REFRESH_TOKEN") and "=" in stripped:
-                _, rhs = stripped.split("=", 1)
-                token = rhs.strip().strip('"').strip("'")
-                if token:
-                    return token
-    searched = ", ".join(str(p) for p in config.REFRESH_TOKEN_PATHS)
-    raise RuntimeError(f"IFIND_REFRESH_TOKEN not found in environment or: {searched}")
+            for var in _TOKEN_ENV_VARS:
+                if stripped.startswith(var + "=") and "=" in stripped:
+                    _, rhs = stripped.split("=", 1)
+                    token = rhs.strip().strip('"').strip("'")
+                    if token:
+                        tokens.append(token)
+    ordered: list[str] = []
+    for t in tokens:
+        if t not in ordered:
+            ordered.append(t)
+    if not ordered:
+        searched = ", ".join(str(p) for p in config.REFRESH_TOKEN_PATHS)
+        raise RuntimeError(
+            f"IFIND_REFRESH_TOKEN not found in environment or: {searched}")
+    return ordered
+
+
+def _account_id(token: str) -> str | None:
+    """从 access token 尾缀 ``signs_<b64(uid)>`` 或 refresh token 中段
+    ``<b64({"uid":"..."})>`` 解出账号 id；解析失败返回 None（视为未知账号）。"""
+    try:
+        if "signs_" in token:
+            b64 = token.rsplit("signs_", 1)[-1]
+            decoded = base64.b64decode(b64 + "=" * (-len(b64) % 4)).decode()
+        else:
+            b64 = token.split(".")[1]
+            decoded = base64.b64decode(b64 + "=" * (-len(b64) % 4)).decode()
+        if decoded.isdigit():
+            return decoded
+        m = re.search(r'"uid"\s*:\s*"?(\d+)"?', decoded)
+        return m.group(1) if m else None
+    except Exception:  # noqa: BLE001 — 令牌格式非预期时不阻断请求链路
+        return None
 
 
 # --- access_token 扁平缓存 ---
@@ -87,8 +130,10 @@ def _token_expired(expired_time: str | None) -> bool:
     return dt.datetime.now() >= exp - dt.timedelta(minutes=10)  # 提前 10 分钟视为过期
 
 
-def _refresh_access_token() -> str:
-    refresh = load_refresh_token()
+def _refresh_access_token(refresh: str | None = None) -> str:
+    """用指定 refresh token 换 access token 并写缓存；不指定则用首个。"""
+    if refresh is None:
+        refresh = load_refresh_tokens()[0]
     resp = requests.post(
         config.IFIND_TOKEN_URL,
         headers={"Content-Type": "application/json"},
@@ -106,23 +151,59 @@ def _refresh_access_token() -> str:
     return access
 
 
+def _sticky_order(tokens: list[str], prefer_uid: str | None) -> list[str]:
+    """缓存黏性：与 prefer_uid 同账号的 token 排最前，其余保持原序。"""
+    if not prefer_uid:
+        return tokens
+    same = [t for t in tokens if _account_id(t) == prefer_uid]
+    rest = [t for t in tokens if _account_id(t) != prefer_uid]
+    return same + rest
+
+
 def get_access_token() -> str:
-    """取有效 access_token：缓存可用则复用，否则用 refresh_token 换新。"""
+    """取有效 access_token：缓存可用则复用；否则按黏性序逐个 refresh，
+    单个令牌过期/失效自动回退到下一个（2026-10-13 备用号到期的场景）。"""
     tok, exp = _read_token_cache()
     if tok and not _token_expired(exp):
         return tok
-    return _refresh_access_token()
+    tokens = load_refresh_tokens()
+    ordered = _sticky_order(tokens, _account_id(tok) if tok else None)
+    last_exc: Exception | None = None
+    for rt in ordered:
+        try:
+            return _refresh_access_token(rt)
+        except Exception as exc:  # noqa: BLE001 — 逐个回退，最后抛最后一个
+            last_exc = exc
+            print(f"[ifind] refresh 失败（账号 {_account_id(rt)}），尝试下一令牌: {str(exc)[:80]}")
+    assert last_exc is not None
+    raise last_exc
+
+
+def _rotate_on_quota(current_access: str) -> str | None:
+    """配额耗尽时切换到下一个账号：按序尝试其余令牌 refresh，成功即缓存并返回；
+    无备用或全部失败返回 None（调用方抛原始配额错）。"""
+    tokens = load_refresh_tokens()
+    cur = _account_id(current_access)
+    others = [t for t in tokens if _account_id(t) != cur]
+    for rt in others:
+        try:
+            access = _refresh_access_token(rt)
+            print(f"[ifind] 配额耗尽，切换到账号 {_account_id(access)}")
+            return access
+        except Exception as exc:  # noqa: BLE001
+            print(f"[ifind] 切换账号 {_account_id(rt)} 失败: {str(exc)[:80]}")
+    return None
 
 
 # --- HTTP core ---
 def _post(url: str, payload: dict, timeout: int = 120) -> dict:
-    """POST + JSON 解码 + 一次刷新重试；配额类错误 fail-fast 不浪费刷新。
+    """POST + JSON 解码 + 一次刷新重试；配额类错误先切备用账号再失败。
 
     errorcode≠0 的处理次序（2026-09-26 回补事故教训：任何非零码曾被一律
     当 token 失效去刷新，refresh 不可用时把真实错误码掩盖成 token 加载错）：
-    ① 配额码直接抛（刷新救不了）；② 其余先刷新 token 重试一次（刷新不可用
-    则沿用旧 token 原样重试——瞬时错误码常自愈）；③ 仍失败则抛出**原始**
-    errorcode/errmsg。
+    ① 配额码：有备用账号则切换重试一次，无备用（或切换后仍配额尽）抛原始错；
+    ② 其余先刷新 token 重试一次（刷新不可用则沿用旧 token 原样重试——瞬时
+    错误码常自愈）；③ 仍失败则抛出**原始** errorcode/errmsg。
     """
     access = get_access_token()
     r = requests.post(
@@ -139,6 +220,16 @@ def _post(url: str, payload: dict, timeout: int = 120) -> dict:
     if not _errcode_ok(data):
         code0 = str(data.get("errorcode"))
         if code0 in _QUOTA_ERRORCODES:
+            alt = _rotate_on_quota(access)
+            if alt:
+                data = requests.post(
+                    url,
+                    json=payload,
+                    headers={"Content-Type": "application/json", "access_token": alt},
+                    timeout=timeout,
+                ).json()
+                if _errcode_ok(data):
+                    return data
             raise IfindError(f"配额耗尽 errorcode={code0}: {data.get('errmsg')}")
         try:
             access = _refresh_access_token()
