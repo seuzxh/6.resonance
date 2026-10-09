@@ -103,10 +103,53 @@ def collect_bars(codes: list[str]) -> pd.DataFrame:
     return bars
 
 
+def repair_bars(codes: list[str]) -> None:
+    """指定代码全指标重采，keep="last" 覆盖合并（数据修复专用）。
+
+    用途：历史采集遗留的指标缺口（如 2026-10-10 发现 399001.SZ 成交额
+    2025-26 全缺——接口有数、当年没采全）。范围锚定该代码在缓存中的
+    既有 min~max 日期，不向前扩展；分段 60 天防 -4308。
+    """
+    bars = pd.read_parquet(BARS_FILE)
+    for code in codes:
+        sub = bars[bars["symbol"] == code]
+        if sub.empty:
+            print(f"[repair] {code} 缓存无行，跳过（不在采集 universe？）")
+            continue
+        d_min, d_max = sub["date"].min(), sub["date"].max()
+        amt_before = float(sub["amount"].notna().mean()) if "amount" in sub else float("nan")
+        frames = []
+        cur = pd.Timestamp(d_min)
+        end = pd.Timestamp(d_max)
+        while cur <= end:
+            seg_end = min(cur + pd.Timedelta(days=60), end)
+            got = fetch_history_data([code], cur.strftime("%Y-%m-%d"),
+                                     seg_end.strftime("%Y-%m-%d"))
+            frames.extend(got)
+            cur = seg_end + pd.Timedelta(days=1)
+            time.sleep(0.3)
+        new = pd.concat(frames, ignore_index=True)
+        merged = pd.concat([bars, new], ignore_index=True).drop_duplicates(
+            subset=["symbol", "date"], keep="last"
+        )
+        merged.to_parquet(BARS_FILE, index=False)
+        bars = merged
+        after = merged[merged["symbol"] == code]
+        amt_after = float(after["amount"].notna().mean())
+        print(f"[repair] {code} {d_min}~{d_max}：重采 {len(new)} 行，"
+              f"amount 可得率 {amt_before:.3f} → {amt_after:.3f}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--catalog-only", action="store_true", help="只刷概念目录")
+    ap.add_argument("--repair", metavar="CODE[,CODE..]", default="",
+                    help="指定代码全指标重采并 keep=last 覆盖（数据修复，不扩展日期范围）")
     args = ap.parse_args()
+
+    if args.repair:
+        repair_bars([c.strip() for c in args.repair.split(",") if c.strip()])
+        return 0
 
     if CATALOG_FILE.exists() and not args.catalog_only:
         catalog = pd.read_csv(CATALOG_FILE)
