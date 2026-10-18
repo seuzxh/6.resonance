@@ -62,6 +62,10 @@
 - [anchor-selection.md](research/anchor-selection.md) — 单锚概念策略表现选锚与
   软占用惩罚实验（2026-10-03）：预注册主矩阵和纯日线诊断均完成，两项主规则
   不采纳；含相位收敛、分钟陈旧窗口审计及图表入口。
+- [multi-model-survey.md](research/multi-model-survey.md) — 多模型风格适配
+  调研（2026-10-17）：可行域盘点与推荐路线——固定权重叠加先例为负、
+  显式状态切换与按近期表现择优被登记表封堵、首选方向为 DDG-DA 式
+  动态样本加权，执行侧杠杆（降频/嫁接）为前置裁决项。
 - [experiment-playbook.md](research/experiment-playbook.md) — 方法论手册：
   预注册协议、七条定律、负结论登记表（新实验必读 §五检查清单）。
 - [qlib-validation-plan.md](research/qlib-validation-plan.md) — qlib 独立引擎
